@@ -13,11 +13,11 @@ let factorial n =
 
 let hyperGeometric0F1 a z =
     //The confluent hypergeometric limit function
+    //known weakness- large z
     let accuracy = pown 10. -15
     let rec core a z n delta result =
         let delta' = if n=0 then complex 1. 0. else delta * z / (complex ((float(n)+a-1.)*(float(n))) 0. )
         let result' = if n=0 then complex 1. 0. else result + delta'
-        printf "result %A delta %A\n" result' delta'
         match( ((delta'/result').Magnitude < accuracy), n<500) with
         | (true,_) -> result'
         | (false,true) -> core a z (n+1) delta' result'
@@ -27,19 +27,7 @@ let hyperGeometric0F1 a z =
 let besselJ v x =
     (x/(complex 2. 0.))**(complex v 0.) / (complex (gamma(v+1.)) 0.) * (hyperGeometric0F1 (v+1.) (-x*x/(complex 4. 0.)) )
 
-//let besselJ v x =
-//    //Taylor expansion- this doesn't work so well
-//    let accuracy = pown 10. -15
-//    let rec core v x n result = 
-//        //let delta = (pown -1. n) * ((x/2.)**(2.*(float(n) + v))) / ( (factorial n) * gamma(v+float(n)+1.) )
-//        let delta = (complex (pown -1. n) 0.) / (complex ( (factorial n) * gamma(v+float(n)+1.) ) 0.) * ( x/(complex 2. 0.) ) ** (2.*(float(n) + v)) 
-//        let result' = result + delta
-//        if (delta/result).Magnitude < accuracy then result else 
-//            if n < 500 then core v x (n+1) result' else printf "Last result = %A\n" result'; failwith("Bessel J function failed to converge")
-//    core v x 0 (complex 0. 0.)
-    
-
-let M a b (z:complex) maxN = 
+let M a b (z:complex) = 
     //Different ways to calculate the hypergeometric function, based on their strengths. 
     //Current known weaknesses
     //-Anything with complex a or b (due to limitations of gamma function)
@@ -55,61 +43,52 @@ let M a b (z:complex) maxN =
     //
     //See Masters Thesis of John Pearson for more details https://people.maths.ox.ac.uk/porterm/research/pearson_final.pdf
     let accuracy = pown 10. -15
-    let maxAttempts = match maxN with
-                        | Some(n) -> n
-                        | None -> 500
     let rec taylorExpansion accuracy a b z n numerator denominator result =
         //Taylor expansion of M. This has been reported as an efficent way of calculating M, but with known weaknesses
-        if debug then printf "Taylor expansion method\n"
         let numerator' = if n = 0 then complex 1. 0. else numerator * (complex (a + float(n-1)) 0.) * z
         let denominator' = if n = 0 then complex 1. 0. else denominator * complex (float(n) * (b + float(n-1))) 0.
         let delta = numerator' / denominator'
         let result' = result + delta
-        //printf "N %A D %A R %A A %A\n" numerator' denominator' result' (result'-result)
-        if (delta/result).Magnitude < accuracy then result' else 
-            if n+1 < 500 then taylorExpansion accuracy a b z (n+1) numerator' denominator' result' else printf "a %A b %A c %A\n" a b z ; failwith("Kummer M function failed to converge (Taylor)")
+        if (delta/result).Magnitude < accuracy then ignore (if debug then printf "Taylor expansion in %A steps\n" n); result' else 
+            if n+1 < 500 then taylorExpansion accuracy a b z (n+1) numerator' denominator' result' else printf "a %A b %A c %A r %A\n" a b z result' ; failwith("Kummer M function failed to converge (Taylor)")
     let rec singleFraction accuracy a b z n alpha beta gamma result result' =
         //Expressing the Taylor expansion (above) as a single fraction copes better when b < 1
-        if debug then printf "Single fraction method\n"
         let alpha' = if n = 0 then complex 0. 0. else (alpha + beta) * complex (float(n) * (b + float(n) - 1.)) 0.
         let beta'  = if n = 0 then complex 1. 0. else beta * (complex (a + float(n) - 1.) 0.) * z
         let gamma' = if n = 0 then complex 1. 0. else gamma * (complex (float(n) * (b + float(n) - 1.)) 0.)
 
         let result'' = (alpha' + beta')/gamma'
 
-        if (((result'' - result')/result').Magnitude < accuracy) && (((result' - result)/result).Magnitude < accuracy) then result'' else
-            if n+1 < 500 then singleFraction accuracy a b z (n+1) alpha' beta' gamma' result' result'' else  printf "a %A b %A c %A\n" a b z ; failwith("Kummer M function failed to converge (Fraction)")
-    let rec buchholz accuracy a b z n d d' d'' coefficient result =
-        if debug then printf "Buchholz method\n"
-        let coefficient = if n=0 then (complex (gamma(b)) 0.) * exp(z/(complex 2. 0.)) * (complex 2. 0.) ** (b-1.) else coefficient
-        let d''' = match n with
-                    | 0 -> complex 1. 0.
-                    | 1 -> complex 0. 0.
-                    | 2 -> complex (b/2.) 0.
-                    | _ -> (complex (float(n) - 2. + b) 0.) * d' + (complex (2.*a - b) 0.) * d
-        //let delta = constant * d''' * z ** (complex (float(n)) 0.) * (complex ( besselJ ( b-1.+float(n)) ) 0.) * sqrt(z*(complex (2.*b-4.*a) 0.)) / ( (z * (complex (2.*b-4.*a) 0.) )**( 0.5 * (b-1.+float(n)) ) ) 
-        
-        let delta = coefficient * d''' * z ** (float(n)) * (besselJ (b-1.+float(n)) ( sqrt(z*(complex (2.*b - 4.*a) 0.) ) ) ) / (z*(complex (2.*b - 4.*a) 0.))**(0.5*(b-1.+float(n)))
+        if (((result'' - result')/result').Magnitude < accuracy) && (((result' - result)/result).Magnitude < accuracy) then ignore (if debug then printf "Single fraction in %A steps\n" n); result'' else
+            if n+1 < 500 then singleFraction accuracy a b z (n+1) alpha' beta' gamma' result' result'' else  printf "a %A b %A c %A r %A\n" a b z result'; failwith("Kummer M function failed to converge (Fraction)")
+    let rec buchholz accuracy a b z n d d' d'' result =
+        //Initialise system
+        //First three steps are skipped as we know the d coefficients prior to calculation
+        let unchangingCoefficient = (complex (gamma(b) * 2. ** (b-1.)) 0.) * exp(z/(complex 2. 0.))
+        let sqrt_z_x_4a_minus_2b = sqrt( z*(complex (4.*a-2.*b) 0.) )
+        let result = if n = 0 then unchangingCoefficient * ( ( besselJ (b-1.)    ( sqrt_z_x_4a_minus_2b ) )/(sqrt_z_x_4a_minus_2b**( b-1.   )) +
+                                                             ( besselJ (b-1.+2.) ( sqrt_z_x_4a_minus_2b ) )/(sqrt_z_x_4a_minus_2b**( b-1.+2. )) * (complex (b/2.) 0.) * z ** 2.  ) else result
+        let n = if n = 0 then 3 else n
+        let d''' = ( (complex (float(n) - 2. + b) 0.) * d' + (complex (2.*a - b) 0.) * d )/(complex (float(n)) 0.)
+        let delta = unchangingCoefficient * d''' * (besselJ (b-1.+float(n)) (sqrt_z_x_4a_minus_2b ) ) / (sqrt_z_x_4a_minus_2b**( (b-1.+float(n)) ))
         let result' = result + delta
-        
-        ignore ((delta/result').Magnitude < accuracy)
+        match (((delta/result').Magnitude < accuracy) ,n<500) with 
+        | (true,_) -> ignore (if debug then printf "Buchholz in %A steps\n" n); result'
+        | (false,true) -> buchholz accuracy a b z (n+1) d' d'' d''' result'
+        | (false,false) -> printf "a %A b %A c %A\n" a b z ; failwith("Kummer M function failed to converge (Buchholz)")
 
-        //This function is incomplete.
-        failwith("The buchholz method has not been completely implemented")
     
     //Decide which approach to use
-    //sign(a)=sign(z.Real)
+    //Temporarily disabling Buchholz method until I've confirmed that I can reproduce the original matlab results
     if debug then printf "a %A b %A z %A\n" a b z
 
-    match (b>=1.,true) with 
-    | (true, true) -> taylorExpansion accuracy a b z 0 (complex 1. 0.) (complex 1. 0.) (complex 0. 0.)
-    | (false, true) -> singleFraction accuracy a b z 0 (complex 0. 0.) (complex 0. 0.) (complex 1. 0.) (complex 0. 0.) (complex 1. 0.)
-    | (_, false)    -> buchholz accuracy a b z 0 (complex 0. 0.) (complex 0. 0.) (complex 0. 0.) (complex 0. 0.) (complex 0. 0.)
-//    if b > 1. then taylorExpansion accuracy a b z 0 (complex 1. 0.) (complex 1. 0.) (complex 0. 0.) else
-//        singleFraction accuracy a b z 0 (complex 0. 0.) (complex 0. 0.) (complex 1. 0.) (complex 0. 0.) (complex 1. 0.)
+    match (b>=1.,sign(a)=sign(z.Real)) with 
+    | (true, _) -> taylorExpansion accuracy a b z 0 (complex 1. 0.) (complex 1. 0.) (complex 0. 0.)
+    | (false, _) -> singleFraction accuracy a b z 0 (complex 0. 0.) (complex 0. 0.) (complex 1. 0.) (complex 0. 0.) (complex 1. 0.)
+    | (_, false)    -> buchholz accuracy a b z 0 (complex 1. 0.) (complex 0. 0.) (complex 0. 0.) (complex 0. 0.)
 
-let U a b z maxN = 
+let U a b z = 
     //undefined for integer b, so we make small perturbations to integer
     let b = if b%1. = 0. then b + 0.00000001 else b
-    (M a b z maxN)* (complex (gamma(1.-b)/gamma(1.+a-b)) 0. ) + (M (1.+a-b) (2.-b) z maxN) * (complex (gamma(b-1.)/gamma(a)) 0.) * z**(1.-b)
+    (M a b z)* (complex (gamma(1.-b)/gamma(1.+a-b)) 0. ) + (M (1.+a-b) (2.-b) z) * (complex (gamma(b-1.)/gamma(a)) 0.) * z**(1.-b)
     //MathNet.Numerics.SpecialFunctions.Gamma(-2.*b) * (M a b z) / MathNet.Numerics.SpecialFunctions.Gamma(0.5 - a - b) + MathNet.Numerics.SpecialFunctions.Gamma(2.*b) * (M a -b z) / MathNet.Numerics.SpecialFunctions.Gamma(0.5 - a + b)
