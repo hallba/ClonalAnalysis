@@ -32,11 +32,12 @@ let F x y t r gamma =
     ( (Whittaker.M w 0. (u*gg)) + C* (Whittaker.W w 0. (u*gg)) )    
 
 let G z t r gamma =
-    let rec core z t r gamma acc =
-        match z with
-        | [] -> acc
-        | topZ::rest -> if topZ = complex 1. 0. then core z t r gamma ((complex 1. 0.)::acc) else core z t r gamma ((F topZ topZ t r gamma)::acc)
-    core z t r gamma []
+    List.map (fun zMember -> if zMember = complex 1. 0. then complex 1. 0. else F zMember zMember t r gamma) z
+//    let rec core z t r gamma acc =
+//        match z with
+//        | [] -> List.rev acc
+//        | topZ::rest -> if topZ = complex 1. 0. then core z t r gamma ((complex 1. 0.)::acc) else core z t r gamma ((F topZ topZ t r gamma)::acc)
+//    core z t r gamma []
 
 //function g = G(z,t,r,gamma)
 //
@@ -78,17 +79,29 @@ let probabilityClonalSurvival inputParameters =
     //printf "P: %A\n" p
     //The following line checks for "pathological points" as described in the original matlab implementation
     if p.r < 0. || p.r > 1. || System.Double.IsNaN(p.r) || System.Double.IsInfinity(p.r) then ((complex 1. 0.) - F (complex 0. 0.) (complex 0. 0.) (T*1.<cell^-1>) ((inputParameters.r*1.<probability^-1>)+0.00001) (gamma+0.00001)) else p
+
+let complexSum c =
+    let rec core c acc = 
+        match c with
+        | top::rest -> core rest (acc+top)
+        | [] -> acc
+    core c (complex 0. 0.)
     
-//let probabilityCloneSizes inputParameters nRange nIter maxN =
-//    let N = if List.max nRange > nIter then List.max nRange + 1 else nIter
-//    let gamma = 1./inputParameters.rho - 1.
-//    let T = inputParameters.lambda * inputParameters.time
-//    let k = List.init N (fun i -> System.Numerics.Complex 0. (float(i)/float(N)*System.Math.PI*2.) )
-//
-//    let gVals = 
+let probabilityCloneSizes inputParameters nRange maxN =
+    let N = if List.max nRange >= maxN then List.max nRange + 1 else maxN
+    let gamma = 1./inputParameters.rho - 1.
+    let T = inputParameters.lambda * inputParameters.time
+    let k = List.init N (fun item -> exp(complex 0. (float(item)/float(N)*System.Math.PI*2.)) )
+    //CORRECT up to here- tested against matlab
+    //let gVals = G k (T*1.<cell^-1>) (inputParameters.r*1.<probability^-1>) gamma
+    let gVals = List.map (fun zMember -> if zMember = complex 1. 0. then complex 1. 0. else F zMember zMember (T*1.<cell^-1>) (inputParameters.r*1.<probability^-1>) gamma) k
+    //printf "GVals %A\n" gVals
+    let gValsSum = complexSum gVals
+    gVals
+    //let p = List.mapi (fun index g -> gValsSum * exp(g*(complex 0. (-2.*System.Math.PI*float(index)*float(nRange.[index]))) ) ) gVals 
     //Gvals = G(exp(2*pi*1i*k/N),T,r,gamma);
 
-//
-//    k=0:(N-1);
 
+    //k=0:(N-1);
+    //p
 
