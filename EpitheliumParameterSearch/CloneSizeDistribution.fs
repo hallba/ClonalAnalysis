@@ -20,12 +20,18 @@ let F x y t r gamma =
     let u0 = ((complex 1. 0.)-y )
     
     //printf "x %A t %A r %A gamma %A\n" x t r gamma
-    //printf "v %A w %A gg %A u %A u0 %A\n" v w gg u u0
+    printf "v %A w %A gg %A u %A u0 %A\n" v w gg u u0
 
     let Q = (complex (1. + 2.*w) 0.) - gg*u0 + ( (complex (2.*r) 0.)*(x-y) + y - (complex 1. 0.) )/(complex gamma 0.)
-
-    let C = ((-Q*(Whittaker.M w 0. gg*u0) ) + (complex (1.+2.*w) 0.)*(Whittaker.M (1.+w) 0. (gg*u0))) / (Q*(Whittaker.W w 0. gg*u0 )+(complex 2. 0.)*(Whittaker.W (1.+w) 0. (gg*u0) ) )
     
+    //REALLY interesting bug. Forget to put the brackets around the  gg*u0- type checker does not find this, gives different result
+    let C = ((-Q*(Whittaker.M w 0. (gg*u0)) ) + (complex (1.+2.*w) 0.)*(Whittaker.M (1.+w) 0. (gg*u0))) / (Q*(Whittaker.W w 0. (gg*u0) )+(complex 2. 0.)*(Whittaker.W (1.+w) 0. (gg*u0) ) )
+    //
+//Matlab
+//    C = (-Q*whittakerM(w,0,gg*u0) + (1+2*w)*whittakerM(1+w,0,gg*u0)) / ...
+//    (Q * whittakerW(w,0,gg*u0) + 2*whittakerW(1+w,0,gg*u0))
+    printf "Q %A C %A" Q C
+    //Examine C in depth
     (complex 1. 0.) - u + 
     (u*(complex (1.+v) 0.)- (complex (gamma*(1.+2.*w)) 0.) ) / complex (2.*r) 0. +
     (complex (gamma/(2.*r)) 0.) * ( (complex (1.+2.*w) 0.)* (Whittaker.M (1.+w) 0. (u*gg) ) - (complex 2. 0.)*C*(Whittaker.W (1.+w) 0. (u*gg) ) ) /
