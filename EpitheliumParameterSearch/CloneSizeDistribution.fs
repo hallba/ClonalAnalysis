@@ -98,16 +98,8 @@ let probabilityCloneSizes inputParameters nRange maxN =
     let gamma = 1./inputParameters.rho - 1.
     let T = inputParameters.lambda * inputParameters.time
     let k = List.init N (fun item -> exp(complex 0. (float(item)/float(N)*System.Math.PI*2.)) )
-    //CORRECT up to here- tested against matlab
-    //let gVals = G k (T*1.<cell^-1>) (inputParameters.r*1.<probability^-1>) gamma
-    let gVals = List.map (fun zMember -> if zMember = complex 1. 0. then complex 1. 0. else F zMember zMember (T*1.<cell^-1>) (inputParameters.r*1.<probability^-1>) gamma) k
-    //printf "GVals %A\n" gVals
-    let gValsSum = complexSum gVals
-    gVals
-    //let p = List.mapi (fun index g -> gValsSum * exp(g*(complex 0. (-2.*System.Math.PI*float(index)*float(nRange.[index]))) ) ) gVals 
-    //Gvals = G(exp(2*pi*1i*k/N),T,r,gamma);
-
-
-    //k=0:(N-1);
-    //p
+    let gVals = List.map (fun zMember -> if zMember = complex 1. 0. then complex 1. 0. else F zMember zMember (T*1.<cell^-1>) (inputParameters.r*1.<probability^-1>) gamma) k 
+    let p = List.map (fun n -> List.mapi (fun index i -> i * exp(complex 0. (-2.*System.Math.PI*float(n)*float(index)/float(N)) ) ) gVals ) nRange 
+            |>List.map (fun item -> (complexSum item).r/float(N) )
+    p
 
