@@ -8,6 +8,26 @@ let debug = false
 //Note: 169 is the max input to this function before the value becomes infinite
 let gamma = MathNet.Numerics.SpecialFunctions.Gamma
 
+let rec complexGamma (z:System.Numerics.Complex) =
+    //Lanczos approximation, based on wikipedia implementation
+    //http://creativecommons.org/licenses/by-sa/3.0/
+    let p = [   complex 676.5203681218851 0.;
+                complex -1259.1392167224028 0.;
+                complex 771.32342877765313 0.;
+                complex -176.61502916214059 0.;
+                complex 12.507343278686905 0.;
+                complex -0.13857109526572012 0.;
+                complex 9.9843695780195716e-6 0.;
+                complex 1.5056327351493116e-7 0.  ]
+    let complexPi = complex System.Math.PI 0.
+    if z.r < 0.5 then complexPi / ( (MathNet.Numerics.Trig.Sin complexPi*z) * complexGamma ( (complex 1. 0.) - z) )
+        else    let z = z - complex 1. 0.
+                //let x = complex 0.99999999999980993 0.
+                let x  = List.mapi (fun i pVal -> pVal/(z+complex (float(i)+1.) 0.)) p
+                        |> List.fold (fun acc pVal -> acc+pVal ) (complex 0.99999999999980993 0.)  
+                let t = (complex (float(List.length p) - 0.5) 0.) + z
+                sqrt( (complex 2. 0.)*complexPi) * t**(z+(complex 0.5 0.)) * exp(-t) * x
+
 let factorial n =
     let rec core n acc =
         if n=0 then acc else core (n-1) (float(n)*acc)

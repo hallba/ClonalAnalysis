@@ -12,6 +12,10 @@ type week
 type probability
 
 let F x y t r gamma = 
+    //v needs to be complex for values of r over 0.25 
+    //-> if v is complex, then w is complex
+    //-> if w is complex then the "a" term of the Kummer function is complex
+    //-> therefore we need to implement a complex gamma function in Kummer.fs
     let v = sqrt(1.-4.*r)
     let w = (gamma*(1.-2.*r) - 2.*r) / (2.*gamma*sqrt(1.-4.*r))
     let gg = complex (sqrt(1.-4.*r)/gamma) 0.
@@ -19,7 +23,7 @@ let F x y t r gamma =
     let u = ((complex 1. 0.)-y)*exp(complex (-gamma*t) 0.) 
     let u0 = ((complex 1. 0.)-y )
     
-    //printf "v %A w %A gg %A u %A u0 %A\n" v w gg u u0
+    printf "v %A w %A gg %A u %A u0 %A\n" v w gg u u0
 
     let Q = (complex (1. + 2.*w) 0.) - gg*u0 + ( (complex (2.*r) 0.)*(x-y) + y - (complex 1. 0.) )/(complex gamma 0.)
     
@@ -48,7 +52,7 @@ let probabilityClonalSurvival inputParameters =
     let T = inputParameters.lambda * inputParameters.time
     let p = (complex 1. 0.) - F (complex 0. 0.) (complex 0. 0.) (T*1.<cell^-1>) (inputParameters.r*1.<probability^-1>) gamma
     //printf "P: %A\n" p
-    //The following line checks for "pathological points" as described in the original matlab implementation
+    //The following line checks for "pathological points" as described in the original matlab implementation. Note that, following the matlab code, this is a different transformation than before
     if p.r < 0. || p.r > 1. || System.Double.IsNaN(p.r) || System.Double.IsInfinity(p.r) then ((complex 1. 0.) - F (complex 0. 0.) (complex 0. 0.) (T*1.<cell^-1>) ((inputParameters.r*1.<probability^-1>)+0.00001) (gamma+0.00001)) else p
 
 let complexSum c =
@@ -99,7 +103,7 @@ let restructureParameterSet rhoRange rRange lambdaRange timePoints maxN (oneDime
     let lambdaN = Array.length lambdaRange
     let timePointsN = Array.length timePoints
     //Need to check the order of the matrix to avoid matrix transposition
-    let probS = Array.init lambdaN (fun lambda -> Array.init rhoN (fun rho -> Array.init rN (fun r -> Array.init timePointsN (fun t -> oneDimensionalSurvival.[lambda*lambdaN*rhoN*rN+rho*rN*rhoN+r*rN+t]))))
+    let probS = Array.init lambdaN (fun lambda -> Array.init rhoN (fun rho -> Array.init rN (fun r -> Array.init timePointsN (fun t -> oneDimensionalSurvival.[lambda*lambdaN*rhoN*rN+rho*rN*rhoN+r*rN+t] ))))
     let probN = Array.init lambdaN (fun lambda -> Array.init rhoN (fun rho -> Array.init rN (fun r -> Array.init timePointsN (fun t -> oneDimensionalCloneSize.[lambda*lambdaN*rhoN*rN+rho*rN*rhoN+r*rN+t]))))
     {   rhoRange    =   rhoRange
         rRange      =   rRange
