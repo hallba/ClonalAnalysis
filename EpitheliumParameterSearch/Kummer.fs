@@ -30,6 +30,9 @@ let besselJ v x =
     (x/(complex 2. 0.))**(complex v 0.) / (complex (gamma(v+1.)) 0.) * (hyperGeometric0F1 (v+1.) (-x*x/(complex 4. 0.)) )
 
 let M a b (z:complex) = 
+    //Test the input for anything untoward- we cannot cope with NaN
+    if System.Double.IsNaN(a) || System.Double.IsNaN(b) || System.Double.IsNaN(z.r) || System.Double.IsNaN(z.i) then failwith "Kummer M NaN input: a %A b %A z %A\n" a b z
+    
     //Different ways to calculate the hypergeometric function, based on their strengths. 
     //Current known weaknesses
     //-Anything with complex a or b (due to limitations of gamma function)
@@ -82,9 +85,10 @@ let M a b (z:complex) =
     
     //Decide which approach to use
     //Temporarily disabling Buchholz method until I've confirmed that I can reproduce the original matlab results
+    //Need a test which copes with NaN sign(a)=sign(z.Real)
     if debug then printf "a %A b %A z %A\n" a b z
 
-    match (b>=1.,sign(a)=sign(z.Real)) with 
+    match (b>=1.,false) with 
     | (true, _) -> taylorExpansion accuracy a b z 0 (complex 1. 0.) (complex 1. 0.) (complex 0. 0.)
     | (false, _) -> singleFraction accuracy a b z 0 (complex 0. 0.) (complex 0. 0.) (complex 1. 0.) (complex 0. 0.) (complex 1. 0.)
     | (_, false)    -> buchholz accuracy a b z 0 (complex 1. 0.) (complex 0. 0.) (complex 0. 0.) (complex 0. 0.)
