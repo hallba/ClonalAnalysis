@@ -2,7 +2,7 @@
 
 open MathNet.Numerics
 
-let debug = false
+let debug = true
 
 //Todo: implement a gamma function which can accept complex arguements
 //Note: 169 is the max input to this function before the value becomes infinite
@@ -49,14 +49,12 @@ let hyperGeometric0F1 a z =
 let besselJ v x =
     (x/(complex 2. 0.))**(complex v 0.) / (complex (gamma(v+1.)) 0.) * (hyperGeometric0F1 (v+1.) (-x*x/(complex 4. 0.)) )
 
-let M a b (z:complex) = 
+let M (a:complex) (b:complex) (z:complex) = 
     //Test the input for anything untoward- we cannot cope with NaN
-    if System.Double.IsNaN(a) || System.Double.IsNaN(b) || System.Double.IsNaN(z.r) || System.Double.IsNaN(z.i) then failwith "Kummer M NaN input: a %A b %A z %A\n" a b z
+    if System.Double.IsNaN(a.Magnitude) || System.Double.IsNaN(b.Magnitude) || System.Double.IsNaN(z.Magnitude) then failwith "Kummer M NaN input: a %A b %A z %A\n" a b z
     
     //Different ways to calculate the hypergeometric function, based on their strengths. 
     //Current known weaknesses
-    //-Anything with complex a or b (due to limitations of gamma function)
-    //--because of the U function below- which requires a gamma function which handles complex numbers
     //-z > 100
     //-a or b > 50
     //-sign(Re(a)) = negative sign(Re(z))
@@ -70,17 +68,20 @@ let M a b (z:complex) =
     let accuracy = pown 10. -15
     let rec taylorExpansion accuracy a b z n numerator denominator result =
         //Taylor expansion of M. This has been reported as an efficent way of calculating M, but with known weaknesses
-        let numerator' = if n = 0 then complex 1. 0. else numerator * (complex (a + float(n-1)) 0.) * z
-        let denominator' = if n = 0 then complex 1. 0. else denominator * complex (float(n) * (b + float(n-1))) 0.
+        //let numerator' = if n = 0 then complex 1. 0. else numerator * (complex (a + float(n-1)) 0.) * z
+        //let denominator' = if n = 0 then complex 1. 0. else denominator * complex (float(n) * (b + float(n-1))) 0.
+        let numerator' = if n = 0 then complex 1. 0. else numerator * (a + (complex (float(n-1)) 0.) ) * z
+        let denominator' = if n = 0 then complex 1. 0. else denominator * (complex (float(n)) 0.)*(b + (complex (float(n-1)) 0.) )
         let delta = numerator' / denominator'
         let result' = result + delta
         if (delta/result).Magnitude < accuracy then ignore (if debug then printf "Taylor expansion in %A steps\n" n); result' else 
             if n+1 < 500 then taylorExpansion accuracy a b z (n+1) numerator' denominator' result' else printf "a %A b %A c %A r %A\n" a b z result' ; failwith("Kummer M function failed to converge (Taylor)")
     let rec singleFraction accuracy a b z n alpha beta gamma result result' =
         //Expressing the Taylor expansion (above) as a single fraction copes better when b < 1
-        let alpha' = if n = 0 then complex 0. 0. else (alpha + beta) * complex (float(n) * (b + float(n) - 1.)) 0.
-        let beta'  = if n = 0 then complex 1. 0. else beta * (complex (a + float(n) - 1.) 0.) * z
-        let gamma' = if n = 0 then complex 1. 0. else gamma * (complex (float(n) * (b + float(n) - 1.)) 0.)
+        //let alpha' = if n = 0 then complex 0. 0. else (alpha + beta) * complex (float(n) * (b + float(n) - 1.)) 0.
+        let alpha' = if n = 0 then complex 0. 0. else (alpha + beta) * (complex (float(n)) 0.) * (b + (complex (float(n)-1.) 0.) )  //complex (float(n) * (b + float(n) - 1.)) 0.
+        let beta'  = if n = 0 then complex 1. 0. else beta * (a + complex (float(n) - 1.) 0.) * z
+        let gamma' = if n = 0 then complex 1. 0. else gamma * (complex (float(n)) 0.) * (b + (complex (float(n) - 1.) 0.))
 
         let result'' = (alpha' + beta')/gamma'
 
@@ -108,13 +109,15 @@ let M a b (z:complex) =
     //Need a test which copes with NaN sign(a)=sign(z.Real)
     if debug then printf "a %A b %A z %A\n" a b z
 
-    match (b>=1.,false) with 
+    match (b.Magnitude>=1.,false) with 
     | (true, _) -> taylorExpansion accuracy a b z 0 (complex 1. 0.) (complex 1. 0.) (complex 0. 0.)
     | (false, _) -> singleFraction accuracy a b z 0 (complex 0. 0.) (complex 0. 0.) (complex 1. 0.) (complex 0. 0.) (complex 1. 0.)
-    | (_, false)    -> buchholz accuracy a b z 0 (complex 1. 0.) (complex 0. 0.) (complex 0. 0.) (complex 0. 0.)
+    //| (_, false)    -> buchholz accuracy a b z 0 (complex 1. 0.) (complex 0. 0.) (complex 0. 0.) (complex 0. 0.)
 
-let U a b z = 
+let U a (b:complex) z = 
     //undefined for integer b, so we make small perturbations to integer
-    let b = if b%1. = 0. then b + 0.00000001 else b
-    (M a b z)* (complex (gamma(1.-b)/gamma(1.+a-b)) 0. ) + (M (1.+a-b) (2.-b) z) * (complex (gamma(b-1.)/gamma(a)) 0.) * z**(1.-b)
+    let b = if b.r%1. = 0. then b + complex 0.00000001 0. else b
+    //(M a b z)* (complex (gamma(1.-b)/gamma(1.+a-b)) 0. ) + (M (1.+a-b) (2.-b) z) * (complex (gamma(b-1.)/gamma(a)) 0.) * z**(1.-b)
+    (M a b z)* ( (complexGamma((complex 1. 0.)-b)/complexGamma((complex 1. 0.)+a-b)) ) + (M ((complex 1. 0.)+a-b) ((complex 2. 0.)-b) z) * ( complexGamma(b-(complex 1. 0.))/complexGamma(a) ) * z**((complex 1. 0.)-b)
+    
     //MathNet.Numerics.SpecialFunctions.Gamma(-2.*b) * (M a b z) / MathNet.Numerics.SpecialFunctions.Gamma(0.5 - a - b) + MathNet.Numerics.SpecialFunctions.Gamma(2.*b) * (M a -b z) / MathNet.Numerics.SpecialFunctions.Gamma(0.5 - a + b)
