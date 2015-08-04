@@ -16,24 +16,37 @@ let F x y t r gamma =
     //-> if v is complex, then w is complex
     //-> if w is complex then the "a" term of the Kummer function is complex
     //-> therefore we need to implement a complex gamma function in Kummer.fs
-    let v = sqrt(1.-4.*r)
-    let w = (gamma*(1.-2.*r) - 2.*r) / (2.*gamma*sqrt(1.-4.*r))
-    let gg = complex (sqrt(1.-4.*r)/gamma) 0.
+    let v = sqrt(complex (1.-4.*r) 0.)
+    let w = (complex (gamma*(1.-2.*r) - 2.*r) 0.) / ( (complex (2.*gamma) 0.)*sqrt(complex (1.-4.*r) 0.))
+    let gg = sqrt(complex (1.-4.*r) 0.)/(complex gamma 0.)
 
     let u = ((complex 1. 0.)-y)*exp(complex (-gamma*t) 0.) 
     let u0 = ((complex 1. 0.)-y )
     
-    printf "v %A w %A gg %A u %A u0 %A\n" v w gg u u0
+    //Complex numbers shortcuts
+    let c0 = complex 0. 0.
+    let c1 = complex 1. 0.
+    let c2 = complex 2. 0.
+    let cGamma = complex gamma 0.
+    let cR = complex r 0.
 
-    let Q = (complex (1. + 2.*w) 0.) - gg*u0 + ( (complex (2.*r) 0.)*(x-y) + y - (complex 1. 0.) )/(complex gamma 0.)
+    //printf "v %A w %A gg %A u %A u0 %A\n" v w gg u u0
+
+    //let Q = (complex (1. + 2.*w) 0.) - gg*u0 + ( (complex (2.*r) 0.)*(x-y) + y - (complex 1. 0.) )/(complex gamma 0.)
+    let Q = c1 + c2*w - gg*u0 + ( (complex (2.*r) 0.)*(x-y) + y - c1 )/(complex gamma 0.)
     
     //Interesting bug. Forget to put the brackets around the  gg*u0- type checker does not find this, gives different result
-    let C = ((-Q*(Whittaker.M w 0. (gg*u0)) ) + (complex (1.+2.*w) 0.)*(Whittaker.M (1.+w) 0. (gg*u0))) / (Q*(Whittaker.W w 0. (gg*u0) )+(complex 2. 0.)*(Whittaker.W (1.+w) 0. (gg*u0) ) )
-
-    (complex 1. 0.) - u + 
-    (u*(complex (1.+v) 0.)- (complex (gamma*(1.+2.*w)) 0.) ) / complex (2.*r) 0. +
-    (complex (gamma/(2.*r)) 0.) * ( (complex (1.+2.*w) 0.)* (Whittaker.M (1.+w) 0. (u*gg) ) - (complex 2. 0.)*C*(Whittaker.W (1.+w) 0. (u*gg) ) ) /
-    ( (Whittaker.M w 0. (u*gg)) + C* (Whittaker.W w 0. (u*gg)) )    
+    let C = ((-Q*(Whittaker.M w c0 (gg*u0)) ) + (c1+ (c2 * w) )*(Whittaker.M (c1+w) c0 (gg*u0))) / (Q*(Whittaker.W w c0 (gg*u0) )+c2*(Whittaker.W (c1+w) c0 (gg*u0) ) )
+    //printf "Q %A C %A\n" Q C
+    c1 - u + 
+    (u*(v+c1)- cGamma *(c1+c2*w) ) / (c2*cR) +
+    (cGamma/(c2*cR)) * ( ( c1 + c2*w ) * Whittaker.M (c1+w) c0 (u*gg)  - c2*C*(Whittaker.W (c1+w) c0 (u*gg) ) ) /
+    ( (Whittaker.M w c0 (u*gg)) + C* (Whittaker.W w c0 (u*gg)) )  
+    
+//    1 - u + ...
+//    (u*(1+v)-gamma*(1+2*w))/(2*r) + ...
+//    (gamma/(2*r))*( (1+2*w)*whittakerM(1+w,0,u*gg) - 2*C*whittakerW(1+w,0,u*gg)) / ...
+//    (whittakerM(w,0,u*gg) + C*whittakerW(w,0,u*gg));  
 
 type parameterSet = {   time: float<week>;
                         rho: float; 
