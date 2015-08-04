@@ -20,7 +20,7 @@ let rec complexGamma (z:System.Numerics.Complex) =
                 complex 9.9843695780195716e-6 0.;
                 complex 1.5056327351493116e-7 0.  ]
     let complexPi = complex System.Math.PI 0.
-    if z.r < 0.5 then complexPi / ( (MathNet.Numerics.Trig.Sin complexPi*z) * complexGamma ( (complex 1. 0.) - z) )
+    if z.r < 0.5 then complexPi / ( (Trig.Sin (complexPi*z) ) * complexGamma ( (complex 1. 0.) - z) )
         else    let z = z - complex 1. 0.
                 //let x = complex 0.99999999999980993 0.
                 let x  = List.mapi (fun i pVal -> pVal/(z+complex (float(i)+1.) 0.)) p
@@ -118,6 +118,6 @@ let U a (b:complex) z =
     //undefined for integer b, so we make small perturbations to integer
     let b = if b.r%1. = 0. then b + complex 0.00000001 0. else b
     //(M a b z)* (complex (gamma(1.-b)/gamma(1.+a-b)) 0. ) + (M (1.+a-b) (2.-b) z) * (complex (gamma(b-1.)/gamma(a)) 0.) * z**(1.-b)
-    (M a b z)* ( (complexGamma((complex 1. 0.)-b)/complexGamma((complex 1. 0.)+a-b)) ) + (M ((complex 1. 0.)+a-b) ((complex 2. 0.)-b) z) * ( complexGamma(b-(complex 1. 0.))/complexGamma(a) ) * z**((complex 1. 0.)-b)
+    (M a b z)* ( complexGamma((complex 1. 0.)-b)/complexGamma((complex 1. 0.)+a-b) ) + (M ((complex 1. 0.)+a-b) ((complex 2. 0.)-b) z) * ( complexGamma(b-(complex 1. 0.))/complexGamma(a) ) * z**((complex 1. 0.)-b)
     
     //MathNet.Numerics.SpecialFunctions.Gamma(-2.*b) * (M a b z) / MathNet.Numerics.SpecialFunctions.Gamma(0.5 - a - b) + MathNet.Numerics.SpecialFunctions.Gamma(2.*b) * (M a -b z) / MathNet.Numerics.SpecialFunctions.Gamma(0.5 - a + b)
