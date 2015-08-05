@@ -116,7 +116,7 @@ let restructureParameterSet rhoRange rRange lambdaRange timePoints maxN (oneDime
     let lambdaN = Array.length lambdaRange
     let timePointsN = Array.length timePoints
     //Need to check the order of the matrix to avoid matrix transposition
-    printf "Length %A -> Expected %A\n" (Array.length oneDimensionalSurvival) (rhoN*rN*lambdaN*timePointsN)
+    //printf "Length %A -> Expected %A\n" (Array.length oneDimensionalSurvival) (rhoN*rN*lambdaN*timePointsN)
     let probS = Array.init lambdaN (fun lambda -> Array.init rhoN (fun rho -> Array.init rN (fun r -> Array.init timePointsN (fun t -> oneDimensionalSurvival.[t+(r*timePointsN)+(rho*timePointsN*rN)+(lambda*rhoN*timePointsN*rN)].r  ))))
     let probN = Array.init lambdaN (fun lambda -> Array.init rhoN (fun rho -> Array.init rN (fun r -> Array.init timePointsN (fun t -> oneDimensionalCloneSize.[t+(r*timePointsN)+(rho*timePointsN*rN)+(lambda*rhoN*timePointsN*rN)] ))))
     {   rhoRange    =   rhoRange
@@ -132,8 +132,8 @@ let parameterSearch rhoRange rRange lambdaRange timePoints maxN =
     let completeSet = createParameterSet rhoRange rRange lambdaRange timePoints
     
     //Get numbers
-    let probS = Array.Parallel.map (fun input -> probabilityClonalSurvival input) completeSet
-    let probN = Array.Parallel.map (fun input -> probabilityCloneSizes input (List.init maxN (fun i -> i+1)) maxN) completeSet
+    let probS = Array.map (fun input -> probabilityClonalSurvival input) completeSet
+    let probN = Array.map (fun input -> probabilityCloneSizes input (List.init maxN (fun i -> i+1)) maxN) completeSet
 
     //Restructure results and put into a record
     restructureParameterSet rhoRange rRange lambdaRange timePoints maxN probS probN
