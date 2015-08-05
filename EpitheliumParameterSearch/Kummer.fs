@@ -4,62 +4,6 @@ open MathNet.Numerics
 
 let debug = true
 
-//Todo: implement a gamma function which can accept complex arguements
-//Note: 169 is the max input to this function before the value becomes infinite
-let gamma = MathNet.Numerics.SpecialFunctions.Gamma
-
-let rec complexGamma (z:System.Numerics.Complex) =
-    let complexPi = complex System.Math.PI 0.
-    let reflection z =
-        let oneMinusZ = complex 1. 0. - z
-        complexPi / ( (Trig.Sin (complexPi*z) ) * complexGamma ( oneMinusZ ) )       
-    let lanczos (z:complex) =
-        //Lanczos approximation, based on wikipedia implementation
-        //http://creativecommons.org/licenses/by-sa/3.0/
-        let p = [   complex 676.5203681218851 0.;
-                    complex -1259.1392167224028 0.;
-                    complex 771.32342877765313 0.;
-                    complex -176.61502916214059 0.;
-                    complex 12.507343278686905 0.;
-                    complex -0.13857109526572012 0.;
-                    complex 9.9843695780195716e-6 0.;
-                    complex 1.5056327351493116e-7 0.  ]
-        let z' = z - complex 1. 0.
-                    //let x = complex 0.99999999999980993 0.
-        let x  = List.mapi (fun i pVal -> pVal/(z'+complex (float(i)+1.) 0.)) p
-                            |> List.fold (fun acc pVal -> acc+pVal ) (complex 0.99999999999980993 0.)  
-        let t = (complex (float(List.length p) - 0.5) 0.) + z'
-        let result = sqrt( (complex 2. 0.)*complexPi) * t**(z'+(complex 0.5 0.)) * exp(-t) * x
-        result
-    let logGamma (z:complex) =
-        //Stirlings formula
-        let coefficients = [    complex (1./12.) 0.;
-                                complex (-1./360.) 0.;
-                                complex (1./1260.) 0.;
-                                complex (-1./1680.) 0.;
-                                complex (1./1188.) 0.;
-                                complex (-691./360360.) 0.;
-                                complex (1./156.) 0.;
-                                complex (-3617./122400.) 0.;
-                                complex (43867./244188.) 0.;
-                                complex -1.39243221690590 0.  
-                                ]
-        let result = List.mapi (fun i c -> c / (z**(complex (float(i*2+1)) 0. )) ) coefficients
-                     |> List.fold (fun acc item -> acc + item) ( (z - (complex 0.5 0.))*log(z) - z + (complex (0.5*log(2.*System.Math.PI)) 0.) )
-        result
-    //gamma needs to be complex but Stirlings/Lanczos are less precise approximations
-    //Better to keep to one function or mix/match? Stirling gives NaN for too many real z but lanczos is too imprecise
-    if z.i = 0. 
-        then    let result = complex (gamma(z.r)) 0. 
-                if debug then printf "Real gamma: z=%A result=%A\ngamma(%A)\n" z.r result z.r
-                result
-        elif z.r < 0.5 then reflection z
-        else
-                let result = exp(logGamma z) //lanczos z
-                if debug then printf "Complex gamma: z=%A result=%A\ncgama(%A,%A,1)\n" z result z.r z.i
-                result
-
-
 let factorial n =
     let rec core n acc =
         if n=0 then acc else core (n-1) (float(n)*acc)
@@ -79,7 +23,7 @@ let hyperGeometric0F1 a z =
     core a z 0 (complex 0. 0.) (complex 0. 0.)
 
 let besselJ v x =
-    (x/(complex 2. 0.))**(complex v 0.) / (complex (gamma(v+1.)) 0.) * (hyperGeometric0F1 (v+1.) (-x*x/(complex 4. 0.)) )
+    (x/(complex 2. 0.))**(complex v 0.) / (complex (Gamma.realGamma(v+1.)) 0.) * (hyperGeometric0F1 (v+1.) (-x*x/(complex 4. 0.)) )
 
 let M (a:complex) (b:complex) (z:complex) = 
     //Test the input for anything untoward- we cannot cope with NaN
@@ -122,7 +66,7 @@ let M (a:complex) (b:complex) (z:complex) =
     let rec buchholz accuracy a b z n d d' d'' result =
         //Initialise system
         //First three steps are skipped as we know the d coefficients prior to calculation
-        let unchangingCoefficient = (complex (gamma(b) * 2. ** (b-1.)) 0.) * exp(z/(complex 2. 0.))
+        let unchangingCoefficient = (complex (Gamma.realGamma(b) * 2. ** (b-1.)) 0.) * exp(z/(complex 2. 0.))
         let sqrt_z_x_4a_minus_2b = sqrt( z*(complex (4.*a-2.*b) 0.) )
         let result = if n = 0 then unchangingCoefficient * ( ( besselJ (b-1.)    ( sqrt_z_x_4a_minus_2b ) )/(sqrt_z_x_4a_minus_2b**( b-1.   )) +
                                                              ( besselJ (b-1.+2.) ( sqrt_z_x_4a_minus_2b ) )/(sqrt_z_x_4a_minus_2b**( b-1.+2. )) * (complex (b/2.) 0.) * z ** 2.  ) else result
@@ -150,6 +94,6 @@ let U a (b:complex) z =
     //undefined for integer b, so we make small perturbations to integer
     let b = if b.r%1. = 0. then b + complex 0.00000001 0. else b
     //(M a b z)* (complex (gamma(1.-b)/gamma(1.+a-b)) 0. ) + (M (1.+a-b) (2.-b) z) * (complex (gamma(b-1.)/gamma(a)) 0.) * z**(1.-b)
-    (M a b z)* ( complexGamma((complex 1. 0.)-b)/complexGamma((complex 1. 0.)+a-b) ) + (M ((complex 1. 0.)+a-b) ((complex 2. 0.)-b) z) * ( complexGamma(b-(complex 1. 0.))/complexGamma(a) ) * z**((complex 1. 0.)-b)
+    (M a b z)* ( Gamma.complexGamma((complex 1. 0.)-b)/Gamma.complexGamma((complex 1. 0.)+a-b) ) + (M ((complex 1. 0.)+a-b) ((complex 2. 0.)-b) z) * ( Gamma.complexGamma(b-(complex 1. 0.))/Gamma.complexGamma(a) ) * z**((complex 1. 0.)-b)
     
     //MathNet.Numerics.SpecialFunctions.Gamma(-2.*b) * (M a b z) / MathNet.Numerics.SpecialFunctions.Gamma(0.5 - a - b) + MathNet.Numerics.SpecialFunctions.Gamma(2.*b) * (M a -b z) / MathNet.Numerics.SpecialFunctions.Gamma(0.5 - a + b)
