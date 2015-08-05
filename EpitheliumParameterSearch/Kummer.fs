@@ -74,7 +74,7 @@ let M (a:complex) (b:complex) (z:complex) =
         let denominator' = if n = 0 then complex 1. 0. else denominator * (complex (float(n)) 0.)*(b + (complex (float(n-1)) 0.) )
         let delta = numerator' / denominator'
         let result' = result + delta
-        if (delta/result).Magnitude < accuracy then ignore (if debug then printf "Taylor expansion in %A steps\n" n); result' else 
+        if (delta/result).Magnitude < accuracy then ignore (if debug then printf "Taylor expansion in %A steps\na=%A b=%A c=%A result=%A\nhypergeom(%A+%Ai,%A+%Ai,%A+%Ai)\n" n a b z result' a.r a.i b.r b.i z.r z.i); result' else 
             if n+1 < 500 then taylorExpansion accuracy a b z (n+1) numerator' denominator' result' else printf "a %A b %A c %A r %A\n" a b z result' ; failwith("Kummer M function failed to converge (Taylor)")
     let rec singleFraction accuracy a b z n alpha beta gamma result result' =
         //Expressing the Taylor expansion (above) as a single fraction copes better when b < 1
@@ -85,7 +85,7 @@ let M (a:complex) (b:complex) (z:complex) =
 
         let result'' = (alpha' + beta')/gamma'
 
-        if (((result'' - result')/result').Magnitude < accuracy) && (((result' - result)/result).Magnitude < accuracy) then ignore (if debug then printf "Single fraction in %A steps\n" n); result'' else
+        if (((result'' - result')/result').Magnitude < accuracy) && (((result' - result)/result).Magnitude < accuracy) then ignore (if debug then printf "Single fraction in %A steps\na=%A b=%A c=%A result=%A\nhypergeom(%A+%Ai,%A+%Ai,%A+%Ai)\n" n a b z result'' a.r a.i b.r b.i z.r z.i); result'' else
             if n+1 < 500 then singleFraction accuracy a b z (n+1) alpha' beta' gamma' result' result'' else  printf "a %A b %A c %A r %A\n" a b z result'; failwith("Kummer M function failed to converge (Fraction)")
     let rec buchholz accuracy a b z n d d' d'' result =
         //Initialise system
@@ -107,7 +107,7 @@ let M (a:complex) (b:complex) (z:complex) =
     //Decide which approach to use
     //Temporarily disabling Buchholz method until I've confirmed that I can reproduce the original matlab results
     //Need a test which copes with NaN sign(a)=sign(z.Real)
-    if debug then printf "a %A b %A z %A\n" a b z
+    //if debug then printf "a %A b %A z %A\n" a b z
 
     match (b.Magnitude>=1.,false) with 
     | (true, _) -> taylorExpansion accuracy a b z 0 (complex 1. 0.) (complex 1. 0.) (complex 0. 0.)
