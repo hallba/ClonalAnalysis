@@ -59,7 +59,7 @@ type parameterSet = {   time: float<week>;
 
 let testSystem = {time=1.<week>; rho=0.85; r=0.15<probability>; lambda=2.<cell/week>}
 
-let probabilityClonalSurvival inputParameters =
+let probabilityCloneSurvival inputParameters =
     //Note that the below line is incorrect, and the effects corrected later
     let gamma = 1./inputParameters.rho - 1.
     let T = inputParameters.lambda * inputParameters.time
@@ -132,7 +132,7 @@ let parameterSearch rhoRange rRange lambdaRange timePoints maxN =
     let completeSet = createParameterSet rhoRange rRange lambdaRange timePoints
     
     //Get numbers
-    let probS = Array.map (fun input -> probabilityClonalSurvival input) completeSet
+    let probS = Array.map (fun input -> probabilityCloneSurvival input) completeSet
     let probN = Array.map (fun input -> probabilityCloneSizes input (List.init maxN (fun i -> i+1)) maxN) completeSet
 
     //Restructure results and put into a record
