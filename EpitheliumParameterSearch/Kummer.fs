@@ -2,12 +2,14 @@
 
 open MathNet.Numerics
 
-let debug = true
+let debug = Gamma.debug
 
 let factorial n =
     let rec core n acc =
         if n=0 then acc else core (n-1) (float(n)*acc)
     core n 1.
+
+let cGamma = Gamma.complexGamma Gamma.lanczosGodfrey
 
 let hyperGeometric0F1 a z =
     //The confluent hypergeometric limit function
@@ -94,6 +96,6 @@ let U a (b:complex) z =
     //undefined for integer b, so we make small perturbations to integer
     let b = if b.r%1. = 0. then b + complex 0.00000001 0. else b
     //(M a b z)* (complex (gamma(1.-b)/gamma(1.+a-b)) 0. ) + (M (1.+a-b) (2.-b) z) * (complex (gamma(b-1.)/gamma(a)) 0.) * z**(1.-b)
-    (M a b z)* ( Gamma.complexGamma((complex 1. 0.)-b)/Gamma.complexGamma((complex 1. 0.)+a-b) ) + (M ((complex 1. 0.)+a-b) ((complex 2. 0.)-b) z) * ( Gamma.complexGamma(b-(complex 1. 0.))/Gamma.complexGamma(a) ) * z**((complex 1. 0.)-b)
+    (M a b z)* ( cGamma ((complex 1. 0.)-b)/cGamma ((complex 1. 0.)+a-b) ) + (M ((complex 1. 0.)+a-b) ((complex 2. 0.)-b) z) * ( cGamma (b-(complex 1. 0.))/ cGamma a ) * z**((complex 1. 0.)-b)
     
     //MathNet.Numerics.SpecialFunctions.Gamma(-2.*b) * (M a b z) / MathNet.Numerics.SpecialFunctions.Gamma(0.5 - a - b) + MathNet.Numerics.SpecialFunctions.Gamma(2.*b) * (M a -b z) / MathNet.Numerics.SpecialFunctions.Gamma(0.5 - a + b)

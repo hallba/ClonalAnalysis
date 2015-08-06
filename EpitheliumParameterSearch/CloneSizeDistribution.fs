@@ -93,9 +93,9 @@ let probabilityCloneSizes inputParameters nRange maxN =
         //Test for pathological points
         if totalP > 1. || totalP < 0. || System.Double.IsNaN(totalP) then 
             //NB: this is from the matlab code- note that it is a specified small perturbation, not 0.1%
-            ignore (printf "Pathological point: %A. Making 0.1%% perturbation" inputParameters); core inputParameters.correctPathologicalPoint nRange maxN (attempt+1) maxAttempts else
+            ignore (printf "Pathological point: %A.\nsum%A=%A\n Making 0.1%% perturbation\n" inputParameters p totalP); core inputParameters.correctPathologicalPoint nRange maxN (attempt+1) maxAttempts else
             p |> Array.ofList
-    core inputParameters nRange maxN 0 100
+    core inputParameters nRange maxN 0 1
 
 type parameterSearch = {    rhoRange:       float array
                             rRange:         float<probability> array
