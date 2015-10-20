@@ -104,6 +104,8 @@ type parameterSearch = {    rhoRange:       float array
                             maxN:           int
                             cloneSizeMatrix:  float [] [] [] [] []// lambda x rho x r x time x n
                             survivalMatrix: float [] [] [] [] //lambda x rho x r x time
+                            oneDimSizeMatrix: float [] []
+                            oneDimSurvMatrix: complex []
                             }
 
 let createParameterSet rhoRange rRange lambdaRange timePoints = 
@@ -126,6 +128,8 @@ let restructureParameterSet rhoRange rRange lambdaRange timePoints maxN (oneDime
         maxN        =   maxN
         cloneSizeMatrix =   probN
         survivalMatrix  =   probS
+        oneDimSizeMatrix = oneDimensionalCloneSize
+        oneDimSurvMatrix = oneDimensionalSurvival
         }
 
 let parameterSearch rhoRange rRange lambdaRange timePoints maxN =
