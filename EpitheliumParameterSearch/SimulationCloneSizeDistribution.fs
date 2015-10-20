@@ -14,7 +14,7 @@ type clone = {  population  :   cellPopulation;
                 rng     : System.Random;
                 reportFrequency  : float<Types.week>;
                 lastReportTime   : float<Types.week>;
-                report  : cellPopulation option
+                report  : (cellPopulation*float<Types.week>) option
                 }
                 with
                 member this.gamma = this.lambda * this.rho / (1. - this.rho)
@@ -26,7 +26,8 @@ type clone = {  population  :   cellPopulation;
                 member this.update =    //Update time, report value
                                         let dt = - 1.<Types.week> * log (this.rng.NextDouble()/ (this.R*1.<Types.week Types.cell^-2> ) )
                                         let time'  = this.time + dt;
-                                        let (lastReportTime',report') = if time' - this.lastReportTime > this.reportFrequency then (time',Some({A=this.population.A;B=this.population.B;C=this.population.C})) else (this.lastReportTime,None)
+                                        //ignore (printf "%A %A %A" time' this.reportFrequency (time'-(time'%this.reportFrequency)));
+                                        let (lastReportTime',report') = if (time' - this.lastReportTime) > this.reportFrequency then ((time'-(time'%this.reportFrequency)),Some({A=this.population.A;B=this.population.B;C=this.population.C},(time'-(time'%this.reportFrequency)) )) else (this.lastReportTime,None)
                                         //Selection an action
                                         let population'=    let random = this.rng.NextDouble()
                                                             //AA
@@ -52,10 +53,12 @@ let initClone = {   population = {  A = 1<Types.cell>
                     lastReportTime = 0.<Types.week>
                     report = None }
 
-let rec simulate clone timeLimit trace = 
-    match clone.time > timeLimit with
-    | true -> List.rev trace
-    | false ->  let clone' = clone.update
-                match clone'.report with
-                | None -> simulate clone' timeLimit trace
-                | Some(state) -> simulate clone' timeLimit (state::trace)
+let simulate clone timeLimit = 
+    let rec core clone timeLimit trace =
+        match clone.time > timeLimit with
+        | true -> List.rev trace
+        | false ->  let clone' = clone.update
+                    match clone'.report with
+                    | None -> core clone' timeLimit trace
+                    | Some(state) -> core clone' timeLimit (state::trace)
+    core clone timeLimit [(clone.population,clone.time)]
