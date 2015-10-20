@@ -1,15 +1,6 @@
-﻿module CloneSizeDistribution
+﻿module AnalyticalCloneSizeDistribution
 
 open MathNet.Numerics
-
-[<Measure>]
-type cell
-
-[<Measure>]
-type week
-
-[<Measure>]
-type probability
 
 let F x y t r gamma = 
     //v needs to be complex for values of r over 0.25 
@@ -48,22 +39,22 @@ let F x y t r gamma =
 //    (gamma/(2*r))*( (1+2*w)*whittakerM(1+w,0,u*gg) - 2*C*whittakerW(1+w,0,u*gg)) / ...
 //    (whittakerM(w,0,u*gg) + C*whittakerW(w,0,u*gg));  
 
-type parameterSet = {   time: float<week>;
+type parameterSet = {   time: float<Types.week>;
                         rho: float; 
-                        r: float<probability>;
-                        lambda: float<cell/week>
+                        r: float<Types.probability>;
+                        lambda: float<Types.cell/Types.week>
                         } with 
                         member this.migration = this.rho/(1.-this.rho) * this.lambda
-                        member this.correctPathologicalPoint = { this with rho = this.rho + 0.0001 ; r = this.r+0.00001<probability> }
+                        member this.correctPathologicalPoint = { this with rho = this.rho + 0.0001 ; r = this.r+0.00001<Types.probability> }
                         override this.ToString() = sprintf "Rho: %A r:%A Time:%A Lambda:%A" this.rho this.r this.time this.lambda
 
-let testSystem = {time=1.<week>; rho=0.85; r=0.15<probability>; lambda=2.<cell/week>}
+let testSystem = {time=1.<Types.week>; rho=0.85; r=0.15<Types.probability>; lambda=2.<Types.cell/Types.week>}
 
 let probabilityCloneSurvival inputParameters =
     //Note that the below line is incorrect, and the effects corrected later
     let gamma = 1./inputParameters.rho - 1.
     let T = inputParameters.lambda * inputParameters.time
-    let p = (complex 1. 0.) - F (complex 0. 0.) (complex 0. 0.) (T*1.<cell^-1>) (inputParameters.r*1.<probability^-1>) gamma
+    let p = (complex 1. 0.) - F (complex 0. 0.) (complex 0. 0.) (T*1.<Types.cell^-1>) (inputParameters.r*1.<Types.probability^-1>) gamma
     //printf "P: %A\n" p
     //The following line checks for "pathological points" as described in the original matlab implementation. Note that, following the matlab code, this is a different transformation than before
     if p.r < 0. || p.r > 1. || System.Double.IsNaN(p.r) || System.Double.IsInfinity(p.r) then ((complex 1. 0.) - F (complex 0. 0.) (complex 0. 0.) (T*1.<cell^-1>) ((inputParameters.r*1.<probability^-1>)+0.00001) (gamma+0.00001)) else p
@@ -98,9 +89,9 @@ let probabilityCloneSizes inputParameters nRange maxN =
     core inputParameters nRange maxN 0 1
 
 type parameterSearch = {    rhoRange:       float array
-                            rRange:         float<probability> array
-                            lambdaRange:    float<cell/week> array
-                            timePoints:     float<week> array
+                            rRange:         float<Types.probability> array
+                            lambdaRange:    float<Types.cell/Types.week> array
+                            timePoints:     float<Types.week> array
                             maxN:           int
                             cloneSizeMatrix:  float [] [] [] [] []// lambda x rho x r x time x n
                             survivalMatrix: float [] [] [] [] //lambda x rho x r x time
