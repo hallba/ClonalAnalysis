@@ -33,9 +33,9 @@ type clone = {  state   : populationState;
                                         let dt = - 1.<Types.week> * log (this.rng.NextDouble()/ (this.R*1.<Types.week Types.cell^-2> ) )
                                         let time'  = this.state.time + dt;
                                         let (lastReportTime',report') = if (time' - this.lastReportTime) > this.reportFrequency then 
-                                                                        let reportTime = (time'-(time'%this.reportFrequency))
-                                                                        let state = { population = {A=this.state.population.A;B=this.state.population.B;C=this.state.population.C}; time=reportTime }
-                                                                        (reportTime,Some(state)) 
+                                                                            let reportTime = (time'-(time'%this.reportFrequency))
+                                                                            let state = { population = this.state.population ; time=reportTime }
+                                                                            (reportTime,Some(state)) 
                                                                         else (this.lastReportTime,None)
                                         //Selection an action
                                         let population'=    let random = this.rng.NextDouble()
@@ -48,8 +48,13 @@ type clone = {  state   : populationState;
                                                             //Migration
                                                             else {this.state.population with B=this.state.population.B-1<Types.cell>;C=this.state.population.C+1<Types.cell>}
                                         //if there are no more stem cells, set time to beyond the limit
-                                        let time' = if this.state.population.A + this.state.population.B = 0<Types.cell> then printf "No stem cells left\n"; timeLimit+1.<Types.week> else time'
-                                        {this with state = {population = population'; time = time'} ; lastReportTime = lastReportTime' ; report = report' }
+//                                        let time' = if this.state.population.A + this.state.population.B = 0<Types.cell> then printf "No stem cells left\n"; timeLimit+1.<Types.week> else time'
+//                                        {this with state = {population = population'; time = time'} ; lastReportTime = lastReportTime' ; report = report' }
+                                        if this.state.population.A + this.state.population.B > 0<Types.cell> then {this with state = {population = population'; time = time'} ; lastReportTime = lastReportTime' ; report = report' }
+                                        else 
+                                            let finalReportTime = (time'-(time'%this.reportFrequency)) + this.reportFrequency
+                                            {this with state = {population = population'; time = time'} ; lastReportTime = lastReportTime' ; report = report' ; finalState = Some({time=finalReportTime; population=population'}) }
+
 
 let initClone = {   state = {   population = {  A = 1<Types.cell>
                                                 B = 0<Types.cell>
@@ -67,10 +72,11 @@ let initClone = {   state = {   population = {  A = 1<Types.cell>
 
 let simulate clone timeLimit = 
     let rec core clone timeLimit trace =
-        match clone.state.time > timeLimit with
-        | true -> List.rev trace
-        | false ->  let clone' = clone.update timeLimit
-                    match clone'.report with
-                    | None -> core clone' timeLimit trace
-                    | Some(state) -> core clone' timeLimit (state::trace)
+        match (clone.state.time > timeLimit, clone.finalState) with
+        | (true,_)              ->  List.rev trace
+        | (false, None)         ->  let clone' = clone.update timeLimit
+                                    match clone'.report with
+                                    | None -> core clone' timeLimit trace
+                                    | Some(state) -> core clone' timeLimit (state::trace)
+        | (false, Some(state))  ->  List.rev (state::trace)
     core clone timeLimit [clone.state]
