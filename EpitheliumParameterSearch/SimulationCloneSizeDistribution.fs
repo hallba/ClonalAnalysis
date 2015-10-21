@@ -28,7 +28,7 @@ type clone = {  state   : populationState;
                 member this.pAB =   (1.-2.*this.r)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.R
                 member this.pBB =   this.r*(1.-this.delta)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.R
                 member this.pB2C =  float(this.state.population.B)*1.<Types.cell>*this.gamma/this.R
-                member this.update timeLimit =    
+                member this.update =    
                                         //Update time, report value
                                         let dt = - 1.<Types.week> * log (this.rng.NextDouble()/ (this.R*1.<Types.week Types.cell^-2> ) )
                                         let time'  = this.state.time + dt;
@@ -68,13 +68,22 @@ let initClone = {   state = {   population = {  A = 1<Types.cell>
                     report = None 
                     finalState = None}
 
+let rec nonStemSimulation clone trace timeLimit =
+    match clone.finalState with
+    | None -> failwith "Trying to extend an unfinished simulation"
+    | Some(state) -> if state.time > timeLimit then List.rev trace else nonStemSimulation {clone with finalState = Some({state with time=state.time+clone.reportFrequency}) } (state::trace) timeLimit
+
 let simulate clone timeLimit = 
     let rec core clone timeLimit trace =
         match (clone.state.time > timeLimit, clone.finalState) with
         | (true,_)              ->  List.rev trace
-        | (false, None)         ->  let clone' = clone.update timeLimit
+        | (false, None)         ->  let clone' = clone.update 
                                     match clone'.report with
                                     | None -> core clone' timeLimit trace
                                     | Some(state) -> core clone' timeLimit (state::trace)
-        | (false, Some(state))  ->  List.rev (state::trace)
+        | (false, Some(state))  ->  nonStemSimulation clone (state::trace) timeLimit
     core clone timeLimit [clone.state]
+
+let cloneProbability clone number timeLimit=
+    let simulations = Array.Parallel.init number (fun i -> simulate {clone with rng=System.Random(i)} timeLimit)
+    ()
