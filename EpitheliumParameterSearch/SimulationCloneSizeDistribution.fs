@@ -28,31 +28,40 @@ type clone = {  state   : populationState;
                 member this.pAB =   (1.-2.*this.r)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.R
                 member this.pBB =   this.r*(1.-this.delta)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.R
                 member this.pB2C =  float(this.state.population.B)*1.<Types.cell>*this.gamma/this.R
-                member this.update =    
-                                        //Update time, report value
-                                        let dt = - 1.<Types.week> * log (this.rng.NextDouble()/ (this.R*1.<Types.week Types.cell^-2> ) )
-                                        let time'  = this.state.time + dt;
-                                        let (lastReportTime',report') = if (time' - this.lastReportTime) > this.reportFrequency then 
-                                                                            let reportTime = (time'-(time'%this.reportFrequency))
-                                                                            let state = { population = this.state.population ; time=reportTime }
-                                                                            (reportTime,Some(state)) 
-                                                                        else (this.lastReportTime,None)
-                                        //Selection an action
-                                        let population'=    let random = this.rng.NextDouble()
-                                                            //AA
-                                                            if random < this.pAA then {this.state.population with A=this.state.population.A+1<Types.cell>}
-                                                            //AB
-                                                            else if random < this.pAA + this.pAB then {this.state.population with B=this.state.population.B+1<Types.cell>}
-                                                            //BB
-                                                            else if random < this.pAA + this.pAB + this.pBB then {this.state.population with A=this.state.population.A-1<Types.cell>;B=this.state.population.B+2<Types.cell>}
-                                                            //Migration
-                                                            else {this.state.population with B=this.state.population.B-1<Types.cell>;C=this.state.population.C+1<Types.cell>}
+                member this.update =    //If the system has run out of stem cells, just update the final state and return the clone
+                                        match this.finalState with
+                                        | None ->
+                                                    //Update time, report value
+                                                    let dt = - 1.<Types.week> * log (this.rng.NextDouble()/ (this.R*1.<Types.week Types.cell^-2> ) )
+                                                    let time'  = this.state.time + dt;
+                                                    let (lastReportTime',report') = if (time' - this.lastReportTime) > this.reportFrequency then 
+                                                                                        let reportTime = (time'-(time'%this.reportFrequency))
+                                                                                        let state = { population = this.state.population ; time=reportTime }
+                                                                                        (reportTime,Some(state)) 
+                                                                                    else (this.lastReportTime,None)
+                                                    //Selection an action
+                                                    let population'=    let random = this.rng.NextDouble()
+                                                                        //AA
+                                                                        if random < this.pAA then {this.state.population with A=this.state.population.A+1<Types.cell>}
+                                                                        //AB
+                                                                        else if random < this.pAA + this.pAB then {this.state.population with B=this.state.population.B+1<Types.cell>}
+                                                                        //BB
+                                                                        else if random < this.pAA + this.pAB + this.pBB then {this.state.population with A=this.state.population.A-1<Types.cell>;B=this.state.population.B+2<Types.cell>}
+                                                                        //Migration
+                                                                        else {this.state.population with B=this.state.population.B-1<Types.cell>;C=this.state.population.C+1<Types.cell>}
 
-                                        if population'.A + population'.B > 0<Types.cell> then {this with state = {population = population'; time = time'} ; lastReportTime = lastReportTime' ; report = report' }
-                                        else 
-                                            let finalReportTime = (time'-(time'%this.reportFrequency)) + this.reportFrequency
-                                            {this with state = {population = population'; time = time'} ; lastReportTime = lastReportTime' ; report = report' ; finalState = Some({time=finalReportTime; population=population'}) }
-
+                                                    if population'.A + population'.B > 0<Types.cell> then {this with state = {population = population'; time = time'} ; lastReportTime = lastReportTime' ; report = report' }
+                                                    else 
+                                                        let finalReportTime = (time'-(time'%this.reportFrequency)) + this.reportFrequency
+                                                        {this with state = {population = population'; time = time'} ; lastReportTime = lastReportTime' ; report = report' ; finalState = Some({time=finalReportTime; population=population'}) }
+                                        | Some(finalState) -> 
+                                                    let dt = this.reportFrequency
+                                                    let time' = this.state.time + dt
+                                                    let (lastReportTime',report') = let reportTime = (time'-(time'%this.reportFrequency))
+                                                                                    let state = {finalState with time=reportTime}
+                                                                                    (reportTime,Some(state))
+                                                    let population' = finalState.population
+                                                    {this with state = {population = population'; time = time'} ; lastReportTime = lastReportTime' ; report = report' }
 
 let initClone = {   state = {   population = {  A = 1<Types.cell>
                                                 B = 0<Types.cell>
@@ -68,20 +77,14 @@ let initClone = {   state = {   population = {  A = 1<Types.cell>
                     report = None 
                     finalState = None}
 
-let rec nonStemSimulation clone trace timeLimit =
-    match clone.finalState with
-    | None -> failwith "Trying to extend an unfinished simulation"
-    | Some(state) -> if state.time > timeLimit then List.rev trace else nonStemSimulation {clone with finalState = Some({state with time=state.time+clone.reportFrequency}) } (state::trace) timeLimit
-
 let simulate clone timeLimit = 
     let rec core clone timeLimit trace =
-        match (clone.state.time > timeLimit, clone.finalState) with
-        | (true,_)              ->  List.rev trace
-        | (false, None)         ->  let clone' = clone.update 
+        match clone.state.time > timeLimit with
+        | true              ->  List.rev trace
+        | false             ->      let clone' = clone.update 
                                     match clone'.report with
                                     | None -> core clone' timeLimit trace
                                     | Some(state) -> core clone' timeLimit (state::trace)
-        | (false, Some(state))  ->  nonStemSimulation clone (state::trace) timeLimit
     core clone timeLimit [clone.state]
 
 let cloneProbability clone number timeLimit=
