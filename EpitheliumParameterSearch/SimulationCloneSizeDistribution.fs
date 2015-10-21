@@ -47,10 +47,8 @@ type clone = {  state   : populationState;
                                                             else if random < this.pAA + this.pAB + this.pBB then {this.state.population with A=this.state.population.A-1<Types.cell>;B=this.state.population.B+2<Types.cell>}
                                                             //Migration
                                                             else {this.state.population with B=this.state.population.B-1<Types.cell>;C=this.state.population.C+1<Types.cell>}
-                                        //if there are no more stem cells, set time to beyond the limit
-//                                        let time' = if this.state.population.A + this.state.population.B = 0<Types.cell> then printf "No stem cells left\n"; timeLimit+1.<Types.week> else time'
-//                                        {this with state = {population = population'; time = time'} ; lastReportTime = lastReportTime' ; report = report' }
-                                        if this.state.population.A + this.state.population.B > 0<Types.cell> then {this with state = {population = population'; time = time'} ; lastReportTime = lastReportTime' ; report = report' }
+
+                                        if population'.A + population'.B > 0<Types.cell> then {this with state = {population = population'; time = time'} ; lastReportTime = lastReportTime' ; report = report' }
                                         else 
                                             let finalReportTime = (time'-(time'%this.reportFrequency)) + this.reportFrequency
                                             {this with state = {population = population'; time = time'} ; lastReportTime = lastReportTime' ; report = report' ; finalState = Some({time=finalReportTime; population=population'}) }
