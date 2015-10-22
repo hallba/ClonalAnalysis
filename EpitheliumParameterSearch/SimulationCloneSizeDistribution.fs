@@ -3,7 +3,9 @@
 type cellPopulation = 
                 {   A : int<Types.cell>;
                     B : int<Types.cell>;
-                    C : int<Types.cell>;  }
+                    C : int<Types.cell>;  } with
+                    member this.basal = this.A + this.B
+                    member this.suprabasal = this.C
 
 type populationState =
                 {   population  : cellPopulation;
@@ -57,7 +59,7 @@ type clone = {  state   : populationState;
                                                                                                 else (r.lastReport,None)
                                                                 //Selection an action
                                                                 let population'= this.selectEvent
-                                                                if population'.A + population'.B > 0<Types.cell> then {this with state = {population = population'; time = time'} ; reporting=Regular({r with lastReport = lastReportTime'}) ; report = report' }
+                                                                if population'.basal > 0<Types.cell> then {this with state = {population = population'; time = time'} ; reporting=Regular({r with lastReport = lastReportTime'}) ; report = report' }
                                                                 else 
                                                                     let finalReportTime = (time'-(time'%r.frequency)) + r.frequency
                                                                     {this with state = {population = population'; time = time'} ; reporting=Regular({r with lastReport = lastReportTime'}) ; report = report' ; finalState = Some({time=finalReportTime; population=population'}) }
@@ -79,7 +81,7 @@ type clone = {  state   : populationState;
                                                                                                                                 (Some(state),later) 
                                                                                                                             else (None,l)
                                                                                         let population' = this.selectEvent
-                                                                                        if population'.A + population'.B > 0<Types.cell> then {this with state = {population = population'; time = time'} ; reporting=Specified(l') ; report = report' }
+                                                                                        if population'.basal > 0<Types.cell> then {this with state = {population = population'; time = time'} ; reporting=Specified(l') ; report = report' }
                                                                                         else
                                                                                             {this with state = {population = population'; time = time'} ; reporting=Specified(l') ; report = report' ; finalState = Some({time=time'; population=population'}) }
                                         | (Some(state),Specified(l)) -> match l with
