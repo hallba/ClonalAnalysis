@@ -52,7 +52,7 @@ type clone = {  state   : populationState;
                                                                 //Update time, report value
                                                                 let dt = - 1.<Types.week> * log (this.rng.NextDouble()/ (this.R*1.<Types.week Types.cell^-2> ) )
                                                                 let time'  = this.state.time + dt;
-                                                                let (lastReportTime',report') = if (time' - r.lastReport) > r.frequency then 
+                                                                let (lastReportTime',report') = if (time' - r.lastReport) >= r.frequency then 
                                                                                                     let reportTime = (time'-(time'%r.frequency))
                                                                                                     let state = { population = this.state.population ; time=reportTime }
                                                                                                     (reportTime,Some(state)) 
@@ -120,6 +120,32 @@ let simulate clone =
                                     | Some(state) -> core clone' (state::trace)
     core clone [clone.state]
 
-let cloneProbability clone number timeLimit=
-    let simulations = Array.Parallel.init number (fun i -> simulate {clone with rng=System.Random(i)})
-    ()
+let extendArrayForBigObservation arr bigObservation =
+    Array.init (bigObservation+1) (fun i -> if i+1 < Array.length arr then arr.[i] else if i = bigObservation then 1 else 0)
+
+let addObservation arr cloneSize = 
+    if (Array.length arr) > (cloneSize*(1<Types.cell^-1>)+1) 
+    then    ignore (arr.[cloneSize*(1<Types.cell^-1>)] <- (arr.[cloneSize*(1<Types.cell^-1>)] + 1) )
+            arr
+    else    extendArrayForBigObservation arr (cloneSize*(1<Types.cell^-1>))
+
+type cloneSizeDistribution =
+    {   basalObservation        :   int array
+        suprabasalObservation   :   int array
+        time                    :   float<Types.week>
+    } with 
+    member this.add (observation:cellPopulation) =  let basal = observation.basal 
+                                                    let suprabasal = observation.suprabasal
+                                                    let basalObservation' = addObservation this.basalObservation basal
+                                                    let suprabasalObservation' = addObservation this.suprabasalObservation suprabasal
+                                                    {this with basalObservation=basalObservation';suprabasalObservation=suprabasalObservation'}
+
+let noObservations = {basalObservation=[||];suprabasalObservation=[||];time=0.<Types.week>}
+
+let cloneProbability clone number=
+    let observations =  match clone.reporting with
+                        | Specified(l)  -> List.map (fun time -> {noObservations with time=time}) l
+                        | Regular(r)    -> List.init (int(r.timeLimit/r.frequency)+1) (fun i -> {noObservations with time=float(i)*r.frequency} )
+    Array.Parallel.init number (fun i -> simulate {clone with rng=System.Random(i)})
+//    |> Array.fold (fun observations simulation -> List.map2 (fun (o: cloneSizeDistribution) s -> o.add s.population) observations simulation ) observations
+
