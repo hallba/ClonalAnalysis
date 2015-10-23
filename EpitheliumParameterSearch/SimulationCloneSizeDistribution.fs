@@ -43,60 +43,65 @@ type clone = {  state   : populationState;
                         | earliest::rest when earliest < currentTime -> core rest currentTime ({ population = this.state.population ; time=earliest }::acc)
                         | _ -> ((List.rev acc),reportTimes)
                     core reportTimes currentTime []
-                member this.selectEvent =   let random = this.rng.NextDouble()
-                                            //AA
-                                            if random < this.pAA then {this.state.population with A=this.state.population.A+1<Types.cell>}
-                                            //AB
-                                            else if random < this.pAA + this.pAB then {this.state.population with B=this.state.population.B+1<Types.cell>}
-                                            //BB
-                                            else if random < this.pAA + this.pAB + this.pBB then {this.state.population with A=this.state.population.A-1<Types.cell>;B=this.state.population.B+2<Types.cell>}
-                                            //Migration
-                                            else {this.state.population with B=this.state.population.B-1<Types.cell>;C=this.state.population.C+1<Types.cell>}
+                member this.selectEvent =   
+                    let random = this.rng.NextDouble()
+                    //AA
+                    if random < this.pAA then {this.state.population with A=this.state.population.A+1<Types.cell>}
+                    //AB
+                    else if random < this.pAA + this.pAB then {this.state.population with B=this.state.population.B+1<Types.cell>}
+                    //BB
+                    else if random < this.pAA + this.pAB + this.pBB then {this.state.population with A=this.state.population.A-1<Types.cell>;B=this.state.population.B+2<Types.cell>}
+                    //Migration
+                    else {this.state.population with B=this.state.population.B-1<Types.cell>;C=this.state.population.C+1<Types.cell>}
                 member this.update =    //If the system has run out of stem cells, just update the final state and return the clone
-                                        match (this.finalState,this.reporting) with
-                                        | (None,Regular(r)) ->
-                                                                //Update time, report value
-                                                                let dt = - 1.<Types.week> * log (this.rng.NextDouble()/ (this.R*1.<Types.week Types.cell^-2> ) )
-                                                                let time'  = this.state.time + dt;
-                                                                let (lastReportTime',report') = if (time' - r.lastReport) >= r.frequency then 
-                                                                                                    let numberFrames = int((time' - r.lastReport)/r.frequency)
-                                                                                                    let states =        List.init numberFrames (fun i -> (time'-(time'%r.frequency)) + float(i) * r.frequency )
-                                                                                                                        |> List.map (fun reportTime -> { population = this.state.population ; time=reportTime })
-                                                                                                    ((states.[List.length states - 1]).time,Some(states)) 
-                                                                                                else (r.lastReport,None)
-                                                                //Selection an action
-                                                                let population'= this.selectEvent
-                                                                if population'.basal > 0<Types.cell> then {this with state = {population = population'; time = time'} ; reporting=Regular({r with lastReport = lastReportTime'}) ; report = report' }
-                                                                else 
-                                                                    let finalReportTime = (time'-(time'%r.frequency)) + r.frequency
-                                                                    {this with state = {population = population'; time = time'} ; reporting=Regular({r with lastReport = lastReportTime'}) ; report = report' ; finalState = Some({time=finalReportTime; population=population'}) }
-                                        | (Some(finalState),Regular(r)) -> 
-                                                                let dt = r.frequency
-                                                                let time' = this.state.time + dt
-                                                                let (lastReportTime',report') = let reportTime = (time'-(time'%r.frequency))
-                                                                                                let state = {finalState with time=reportTime}
-                                                                                                (reportTime,Some([state]))
-                                                                let population' = finalState.population
-                                                                {this with state = {population = population'; time = time'} ; reporting=Regular({r with lastReport = lastReportTime'}) ; report = report' }
-                                        | (None,Specified(l)) -> match l with
-                                                                | [] -> failwith "Cannot update a completed simulation trace"
-                                                                | nextReport::later -> 
-                                                                                        let dt = - 1.<Types.week> * log (this.rng.NextDouble()/ (this.R*1.<Types.week Types.cell^-2> ) )
-                                                                                        let time'  = this.state.time + dt
-                                                                                        let (report',l') =  this.recordPreviousStates l time'
-                                                                                        let report' =   match report' with
-                                                                                                        | [] -> None
-                                                                                                        | _ -> Some(report')
-                                                                                        let population' = this.selectEvent
-                                                                                        if population'.basal > 0<Types.cell> then {this with state = {population = population'; time = time'} ; reporting=Specified(l') ; report = report' }
-                                                                                        else
-                                                                                            {this with state = {population = population'; time = time'} ; reporting=Specified(l') ; report = report' ; finalState = Some({time=time'; population=population'}) }
-                                        | (Some(state),Specified(l)) -> match l with
-                                                                        | [] -> failwith "Cannot extend a completed simulation trace"
-                                                                        | nextReport::later ->
-                                                                                        let time' = nextReport
-                                                                                        let report' = {state with time=nextReport}
-                                                                                        {this with state=report'; finalState = Some(report'); reporting=Specified(later); report=Some([report'])}
+                    match (this.finalState,this.reporting) with
+                    | (None,Regular(r)) ->
+                        //Update time, report value
+                        let dt = - 1.<Types.week> * log (this.rng.NextDouble()/ (this.R*1.<Types.week Types.cell^-2> ) )
+                        let time'  = this.state.time + dt;
+                        let (lastReportTime',report') = 
+                            if (time' - r.lastReport) >= r.frequency then 
+                                let numberFrames = int((time' - r.lastReport)/r.frequency)
+                                let states =        List.init numberFrames (fun i -> (time'-(time'%r.frequency)) + float(i) * r.frequency )
+                                                    |> List.map (fun reportTime -> { population = this.state.population ; time=reportTime })
+                                ((states.[List.length states - 1]).time,Some(states)) 
+                            else (r.lastReport,None)
+                        //Selection an action
+                        let population'= this.selectEvent
+                        if population'.basal > 0<Types.cell> then {this with state = {population = population'; time = time'} ; reporting=Regular({r with lastReport = lastReportTime'}) ; report = report' }
+                        else 
+                            let finalReportTime = (time'-(time'%r.frequency)) + r.frequency
+                            {this with state = {population = population'; time = time'} ; reporting=Regular({r with lastReport = lastReportTime'}) ; report = report' ; finalState = Some({time=finalReportTime; population=population'}) }
+                    | (Some(finalState),Regular(r)) -> 
+                        let dt = r.frequency
+                        let time' = this.state.time + dt
+                        let (lastReportTime',report') = 
+                            let reportTime = (time'-(time'%r.frequency))
+                            let state = {finalState with time=reportTime}
+                            (reportTime,Some([state]))
+                        let population' = finalState.population
+                        {this with state = {population = population'; time = time'} ; reporting=Regular({r with lastReport = lastReportTime'}) ; report = report' }
+                    | (None,Specified(l)) -> 
+                        match l with
+                        | [] -> failwith "Cannot update a completed simulation trace"
+                        | nextReport::later -> 
+                            let dt = - 1.<Types.week> * log (this.rng.NextDouble()/ (this.R*1.<Types.week Types.cell^-2> ) )
+                            let time'  = this.state.time + dt
+                            let (report',l') =  this.recordPreviousStates l time'
+                            let report' =   match report' with
+                                            | [] -> None
+                                            | _ -> Some(report')
+                            let population' = this.selectEvent
+                            if population'.basal > 0<Types.cell> then {this with state = {population = population'; time = time'} ; reporting=Specified(l') ; report = report' }
+                            else
+                                {this with state = {population = population'; time = time'} ; reporting=Specified(l') ; report = report' ; finalState = Some({time=time'; population=population'}) }
+                    | (Some(state),Specified(l)) -> 
+                        match l with
+                        | [] -> failwith "Cannot extend a completed simulation trace"
+                        | nextReport::later ->
+                                        let time' = nextReport
+                                        let report' = {state with time=nextReport}
+                                        {this with state=report'; finalState = Some(report'); reporting=Specified(later); report=Some([report'])}
 
                                                                 
 let initClone = {   state = {   population = {  A = 1<Types.cell>
@@ -111,6 +116,8 @@ let initClone = {   state = {   population = {  A = 1<Types.cell>
                     reporting = Regular({timeLimit=200.<Types.week>;frequency=4.<Types.week>;lastReport=0.<Types.week>})
                     report = None 
                     finalState = None}
+
+let specificClone = {initClone with reporting = Specified([1.<Types.week>;2.<Types.week>;4.<Types.week>;8.<Types.week>;12.<Types.week>;26.<Types.week>;52.<Types.week>;78.<Types.week>])}
 
 let hasSimulationFinished clone =
     match clone.reporting with 
