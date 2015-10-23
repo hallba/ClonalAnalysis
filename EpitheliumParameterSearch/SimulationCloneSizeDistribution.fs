@@ -123,10 +123,13 @@ let extendArrayForBigObservation arr bigObservation =
     Array.init (bigObservation+1) (fun i -> if i+1 < Array.length arr then arr.[i] else if i = bigObservation then 1 else 0)
 
 let addObservation arr cloneSize = 
-    if (Array.length arr) > (cloneSize*(1<Types.cell^-1>)+1) 
-    then    ignore (arr.[cloneSize*(1<Types.cell^-1>)] <- (arr.[cloneSize*(1<Types.cell^-1>)] + 1) )
+    printf "ArrLen %A\tClonesize%A\n" (Array.length arr) cloneSize
+    if (Array.length arr) >= (cloneSize*(1<Types.cell^-1>)+1) 
+    then    //printf "in range\n"
+            ignore (arr.[cloneSize*(1<Types.cell^-1>)] <- (arr.[cloneSize*(1<Types.cell^-1>)] + 1) )
             arr
-    else    extendArrayForBigObservation arr (cloneSize*(1<Types.cell^-1>))
+    else    //printf "out range\n"
+            extendArrayForBigObservation arr (cloneSize*(1<Types.cell^-1>))
 
 type cloneSizeDistribution =
     {   basalObservation        :   int array
@@ -135,16 +138,19 @@ type cloneSizeDistribution =
     } with 
     member this.add (observation:cellPopulation) =  let basal = observation.basal 
                                                     let suprabasal = observation.suprabasal
+                                                    //printf "T:%A\tB:%A\tS:%A\n" this.time basal suprabasal
                                                     let basalObservation' = addObservation this.basalObservation basal
                                                     let suprabasalObservation' = addObservation this.suprabasalObservation suprabasal
                                                     {this with basalObservation=basalObservation';suprabasalObservation=suprabasalObservation'}
 
 let noObservations = {basalObservation=[||];suprabasalObservation=[||];time=0.<Types.week>}
 
-let cloneProbability clone number=
-    let observations =  match clone.reporting with
-                        | Specified(l)  -> List.map (fun time -> {noObservations with time=time}) l
+let cloneProbability (clone:clone) number=
+    let observations =  match (clone.update).reporting with
+                        | Specified(l)  -> List.map (fun time -> {noObservations with time=time}) ((0.<Types.week>)::l)
                         | Regular(r)    -> List.init (int(r.timeLimit/r.frequency)+1) (fun i -> {noObservations with time=float(i)*r.frequency} )
-    Array.Parallel.init number (fun i -> simulate {clone with rng=System.Random(i)})
-//    |> Array.fold (fun observations simulation -> List.map2 (fun (o: cloneSizeDistribution) s -> o.add s.population) observations simulation ) observations
-
+    let sims = Array.Parallel.init number (fun i -> simulate {clone with rng=System.Random(i)})
+    printf "%A simultion length\n%A observation length\n" (List.length sims.[0]) (List.length observations)
+    //let o' = sims |> Array.fold (fun observations simulation -> List.map2 (fun (o: cloneSizeDistribution) s -> o.add s.population) observations simulation ) observations
+    let o' = List.map2 (fun (o: cloneSizeDistribution) s -> o.add s.population) observations sims.[0]
+    (o',sims)
