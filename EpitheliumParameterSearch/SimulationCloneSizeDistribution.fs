@@ -57,7 +57,7 @@ type clone = {  state   : populationState;
                     match (this.finalState,this.reporting) with
                     | (None,Regular(r)) ->
                         //Skip an update step but convert the clone into a specified times
-                        let timings = List.init (int(r.timeLimit/r.frequency + 1.)) (fun i -> float(i)*r.frequency)
+                        let timings = List.init (int(r.timeLimit/r.frequency)) (fun i -> float(i+1)*r.frequency)
                         {this with reporting=Specified(timings)}
                     | (Some(finalState),Regular(r)) -> 
                         failwith "Regular reporting should never report a final state"
