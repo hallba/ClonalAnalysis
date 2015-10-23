@@ -154,7 +154,7 @@ type cloneSizeDistribution =
 let noObservations = {basalObservation=[||];suprabasalObservation=[||];time=0.<Types.week>}
 
 let cloneProbability (clone:clone) number=
-    let observations =  match (clone.update).reporting with
+    let observations =  match clone.reporting with
                         | Specified(l)  -> List.map (fun time -> {noObservations with time=time}) ((0.<Types.week>)::l)
                         | Regular(r)    -> List.init (int(r.timeLimit/r.frequency)+1) (fun i -> {noObservations with time=float(i)*r.frequency} )
     let sims = Array.Parallel.init number (fun i -> simulate {clone with rng=System.Random(i)})
