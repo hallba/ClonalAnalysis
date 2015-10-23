@@ -27,7 +27,7 @@ type clone = {  state   : populationState;
                 delta   : float;
                 rng     : System.Random;
                 reporting   : reportStyle
-                report  : populationState option;
+                report  : populationState list option;
                 finalState : populationState option
                 }
                 with
@@ -37,6 +37,12 @@ type clone = {  state   : populationState;
                 member this.pAB =   (1.-2.*this.r)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.R
                 member this.pBB =   this.r*(1.-this.delta)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.R
                 member this.pB2C =  float(this.state.population.B)*1.<Types.cell>*this.gamma/this.R
+                member private this.recordPreviousStates reportTimes currentTime =
+                    let rec core reportTimes currentTime acc = 
+                        match reportTimes with
+                        | earliest::rest when earliest < currentTime -> core rest currentTime ({ population = this.state.population ; time=earliest }::acc)
+                        | _ -> ((List.rev acc),reportTimes)
+                    core reportTimes currentTime []
                 member this.selectEvent =   let random = this.rng.NextDouble()
                                             //AA
                                             if random < this.pAA then {this.state.population with A=this.state.population.A+1<Types.cell>}
@@ -53,9 +59,10 @@ type clone = {  state   : populationState;
                                                                 let dt = - 1.<Types.week> * log (this.rng.NextDouble()/ (this.R*1.<Types.week Types.cell^-2> ) )
                                                                 let time'  = this.state.time + dt;
                                                                 let (lastReportTime',report') = if (time' - r.lastReport) >= r.frequency then 
-                                                                                                    let reportTime = (time'-(time'%r.frequency))
-                                                                                                    let state = { population = this.state.population ; time=reportTime }
-                                                                                                    (reportTime,Some(state)) 
+                                                                                                    let numberFrames = int((time' - r.lastReport)/r.frequency)
+                                                                                                    let states =        List.init numberFrames (fun i -> (time'-(time'%r.frequency)) + float(i) * r.frequency )
+                                                                                                                        |> List.map (fun reportTime -> { population = this.state.population ; time=reportTime })
+                                                                                                    ((states.[List.length states - 1]).time,Some(states)) 
                                                                                                 else (r.lastReport,None)
                                                                 //Selection an action
                                                                 let population'= this.selectEvent
@@ -68,7 +75,7 @@ type clone = {  state   : populationState;
                                                                 let time' = this.state.time + dt
                                                                 let (lastReportTime',report') = let reportTime = (time'-(time'%r.frequency))
                                                                                                 let state = {finalState with time=reportTime}
-                                                                                                (reportTime,Some(state))
+                                                                                                (reportTime,Some([state]))
                                                                 let population' = finalState.population
                                                                 {this with state = {population = population'; time = time'} ; reporting=Regular({r with lastReport = lastReportTime'}) ; report = report' }
                                         | (None,Specified(l)) -> match l with
@@ -76,10 +83,10 @@ type clone = {  state   : populationState;
                                                                 | nextReport::later -> 
                                                                                         let dt = - 1.<Types.week> * log (this.rng.NextDouble()/ (this.R*1.<Types.week Types.cell^-2> ) )
                                                                                         let time'  = this.state.time + dt
-                                                                                        let (report',l') =  if time' > nextReport then 
-                                                                                                                                let state = { population = this.state.population ; time=nextReport }
-                                                                                                                                (Some(state),later) 
-                                                                                                                            else (None,l)
+                                                                                        let (report',l') =  this.recordPreviousStates l time'
+                                                                                        let report' =   match report' with
+                                                                                                        | [] -> None
+                                                                                                        | _ -> Some(report')
                                                                                         let population' = this.selectEvent
                                                                                         if population'.basal > 0<Types.cell> then {this with state = {population = population'; time = time'} ; reporting=Specified(l') ; report = report' }
                                                                                         else
@@ -89,7 +96,7 @@ type clone = {  state   : populationState;
                                                                         | nextReport::later ->
                                                                                         let time' = nextReport
                                                                                         let report' = {state with time=nextReport}
-                                                                                        {this with state=report'; finalState = Some(report'); reporting=Specified(later); report=Some(report')}
+                                                                                        {this with state=report'; finalState = Some(report'); reporting=Specified(later); report=Some([report'])}
 
                                                                 
 let initClone = {   state = {   population = {  A = 1<Types.cell>
@@ -110,6 +117,11 @@ let hasSimulationFinished clone =
     | Regular(a) -> clone.state.time > a.timeLimit
     | Specified(a) -> if a <> [] then false else true
 
+let rec concatAllItems orderedList acc =
+    match orderedList with 
+    | [] -> acc
+    | head::rest -> concatAllItems rest (head::acc)
+
 let simulate clone = 
     let rec core clone trace =
         match hasSimulationFinished clone with
@@ -117,7 +129,7 @@ let simulate clone =
         | false             ->      let clone' = clone.update 
                                     match clone'.report with
                                     | None -> core clone' trace
-                                    | Some(state) -> core clone' (state::trace)
+                                    | Some(states) -> core clone' (concatAllItems states trace)
     core clone [clone.state]
 
 let extendArrayForBigObservation arr bigObservation =
