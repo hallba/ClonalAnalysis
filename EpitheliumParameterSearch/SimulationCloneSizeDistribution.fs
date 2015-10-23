@@ -56,31 +56,11 @@ type clone = {  state   : populationState;
                 member this.update =    //If the system has run out of stem cells, just update the final state and return the clone
                     match (this.finalState,this.reporting) with
                     | (None,Regular(r)) ->
-                        //Update time, report value
-                        let dt = - 1.<Types.week> * log (this.rng.NextDouble()/ (this.R*1.<Types.week Types.cell^-2> ) )
-                        let time'  = this.state.time + dt;
-                        let (lastReportTime',report') = 
-                            if (time' - r.lastReport) >= r.frequency then 
-                                let numberFrames = int((time' - r.lastReport)/r.frequency)
-                                let states =        List.init numberFrames (fun i -> (time'-(time'%r.frequency)) + float(i) * r.frequency )
-                                                    |> List.map (fun reportTime -> { population = this.state.population ; time=reportTime })
-                                ((states.[List.length states - 1]).time,Some(states)) 
-                            else (r.lastReport,None)
-                        //Selection an action
-                        let population'= this.selectEvent
-                        if population'.basal > 0<Types.cell> then {this with state = {population = population'; time = time'} ; reporting=Regular({r with lastReport = lastReportTime'}) ; report = report' }
-                        else 
-                            let finalReportTime = (time'-(time'%r.frequency)) + r.frequency
-                            {this with state = {population = population'; time = time'} ; reporting=Regular({r with lastReport = lastReportTime'}) ; report = report' ; finalState = Some({time=finalReportTime; population=population'}) }
+                        //Skip an update step but convert the clone into a specified times
+                        let timings = List.init (int(r.timeLimit/r.frequency + 1.)) (fun i -> float(i)*r.frequency)
+                        {this with reporting=Specified(timings)}
                     | (Some(finalState),Regular(r)) -> 
-                        let dt = r.frequency
-                        let time' = this.state.time + dt
-                        let (lastReportTime',report') = 
-                            let reportTime = (time'-(time'%r.frequency))
-                            let state = {finalState with time=reportTime}
-                            (reportTime,Some([state]))
-                        let population' = finalState.population
-                        {this with state = {population = population'; time = time'} ; reporting=Regular({r with lastReport = lastReportTime'}) ; report = report' }
+                        failwith "Regular reporting should never report a final state"
                     | (None,Specified(l)) -> 
                         match l with
                         | [] -> failwith "Cannot update a completed simulation trace"
