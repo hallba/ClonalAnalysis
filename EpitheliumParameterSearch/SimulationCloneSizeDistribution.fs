@@ -32,11 +32,11 @@ type clone = {  state   : populationState;
                 }
                 with
                 member this.gamma = this.lambda * this.rho / (1. - this.rho)
-                member this.R = this.lambda * float(this.state.population.A) * 1.<Types.cell> + this.gamma * float(this.state.population.B) * 1.<Types.cell>
-                member this.pAA =   this.r*(1.+this.delta)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.R
-                member this.pAB =   (1.-2.*this.r)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.R
-                member this.pBB =   this.r*(1.-this.delta)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.R
-                member this.pB2C =  float(this.state.population.B)*1.<Types.cell>*this.gamma/this.R
+                member this.eventRate = this.lambda * float(this.state.population.A) * 1.<Types.cell> + this.gamma * float(this.state.population.B) * 1.<Types.cell>
+                member this.pAA =   this.r*(1.+this.delta)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.eventRate
+                member this.pAB =   (1.-2.*this.r)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.eventRate
+                member this.pBB =   this.r*(1.-this.delta)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.eventRate
+                member this.pB2C =  float(this.state.population.B)*1.<Types.cell>*this.gamma/this.eventRate
                 member private this.recordPreviousStates reportTimes currentTime =
                     let rec core reportTimes currentTime acc = 
                         match reportTimes with
@@ -65,7 +65,8 @@ type clone = {  state   : populationState;
                         match l with
                         | [] -> failwith "Cannot update a completed simulation trace"
                         | nextReport::later -> 
-                            let dt = - 1.<Types.week> * log (this.rng.NextDouble()/ (this.R*1.<Types.week Types.cell^-2> ) )
+                            //let dt = - 1.<Types.week> * log (this.rng.NextDouble()/ (this.eventRate*1.<Types.week Types.cell^-2> ) )
+                            let dt = -1. * log(this.rng.NextDouble()) / this.eventRate * 1.<Types.cell^2>
                             let time'  = this.state.time + dt
                             let (report',l') =  this.recordPreviousStates l time'
                             let report' =   match report' with
