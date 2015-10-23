@@ -52,7 +52,9 @@ let testSystem = {time=1.<Types.week>; rho=0.85; r=0.15<Types.probability>; lamb
 
 let probabilityCloneSurvival inputParameters =
     //Note that the below line is incorrect, and the effects corrected later
-    let gamma = 1./inputParameters.rho - 1.
+    //let gamma = 1./inputParameters.rho - 1.
+    //Corrected version. Note that the function will need to be inverted for comparison with equivalent matlab code
+    let gamma = inputParameters.rho/(1.-inputParameters.rho)
     let T = inputParameters.lambda * inputParameters.time
     let p = (complex 1. 0.) - F (complex 0. 0.) (complex 0. 0.) (T*1.<Types.cell^-1>) (inputParameters.r*1.<Types.probability^-1>) gamma
     //printf "P: %A\n" p
