@@ -128,6 +128,16 @@ let addObservation arr cloneSize =
             arr
     else    extendArrayForBigObservation arr (cloneSize*(1<Types.cell^-1>))
 
+type cloneSizeProbability = 
+    {   basalFraction           :   float array
+        suprabasalFraction      :   float array
+        time                    :   float<Types.week>
+        }
+
+let normaliseObservation arr =
+    let sumArray = Array.sum arr |> float
+    Array.map (fun obs -> float(obs)/sumArray )  arr
+
 type cloneSizeDistribution =
     {   basalObservation        :   int array
         suprabasalObservation   :   int array
@@ -138,6 +148,8 @@ type cloneSizeDistribution =
                                                     let basalObservation' = addObservation this.basalObservation basal
                                                     let suprabasalObservation' = addObservation this.suprabasalObservation suprabasal
                                                     {this with basalObservation=basalObservation';suprabasalObservation=suprabasalObservation'}
+    member this.normalise = {basalFraction=normaliseObservation(this.basalObservation);suprabasalFraction=normaliseObservation(this.suprabasalObservation);time=this.time}
+        
 
 let noObservations = {basalObservation=[||];suprabasalObservation=[||];time=0.<Types.week>}
 
@@ -146,4 +158,6 @@ let cloneProbability (clone:clone) number=
                         | Specified(l)  -> List.map (fun time -> {noObservations with time=time}) ((0.<Types.week>)::l)
                         | Regular(r)    -> List.init (int(r.timeLimit/r.frequency)+1) (fun i -> {noObservations with time=float(i)*r.frequency} )
     let sims = Array.Parallel.init number (fun i -> simulate {clone with rng=System.Random(i)})
-    sims |> Array.fold (fun observations simulation -> List.map2 (fun (o: cloneSizeDistribution) s -> o.add s.population) observations simulation ) observations
+    sims 
+    |> Array.fold (fun observations simulation -> List.map2 (fun (o: cloneSizeDistribution) s -> o.add s.population) observations simulation ) observations
+    |> List.map (fun timePoint -> timePoint.normalise)

@@ -57,7 +57,7 @@ let probabilityCloneSurvival inputParameters =
     let p = (complex 1. 0.) - F (complex 0. 0.) (complex 0. 0.) (T*1.<Types.cell^-1>) (inputParameters.r*1.<Types.probability^-1>) gamma
     //printf "P: %A\n" p
     //The following line checks for "pathological points" as described in the original matlab implementation. Note that, following the matlab code, this is a different transformation than before
-    if p.r < 0. || p.r > 1. || System.Double.IsNaN(p.r) || System.Double.IsInfinity(p.r) then ((complex 1. 0.) - F (complex 0. 0.) (complex 0. 0.) (T*1.<cell^-1>) ((inputParameters.r*1.<probability^-1>)+0.00001) (gamma+0.00001)) else p
+    if p.r < 0. || p.r > 1. || System.Double.IsNaN(p.r) || System.Double.IsInfinity(p.r) then ((complex 1. 0.) - F (complex 0. 0.) (complex 0. 0.) (T*1.<Types.cell^-1>) ((inputParameters.r*1.<Types.probability^-1>)+0.00001) (gamma+0.00001)) else p
 
 let complexSum c =
     let rec core c acc = 
@@ -75,7 +75,7 @@ let probabilityCloneSizes inputParameters nRange maxN =
         let gamma = 1./inputParameters.rho - 1.
         let T = inputParameters.lambda * inputParameters.time
         let k = List.init N (fun item -> exp(complex 0. (float(item)/float(N)*System.Math.PI*2.)) )
-        let gVals = List.map (fun zMember -> if zMember = complex 1. 0. then complex 1. 0. else F zMember zMember (T*1.<cell^-1>) (inputParameters.r*1.<probability^-1>) gamma) k 
+        let gVals = List.map (fun zMember -> if zMember = complex 1. 0. then complex 1. 0. else F zMember zMember (T*1.<Types.cell^-1>) (inputParameters.r*1.<Types.probability^-1>) gamma) k 
         let p = List.map (fun n -> List.mapi (fun index i -> i * exp(complex 0. (-2.*System.Math.PI*float(n)*float(index)/float(N)) ) ) gVals ) nRange 
                 |>List.map (fun item -> (complexSum item).r/float(N) )
                 |>List.map (fun item -> if item < 0. then 0. else item) //In the matlab code we had an additional test which could allow values less
