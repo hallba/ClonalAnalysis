@@ -39,18 +39,7 @@ let F x y t r gamma =
 //    (gamma/(2*r))*( (1+2*w)*whittakerM(1+w,0,u*gg) - 2*C*whittakerW(1+w,0,u*gg)) / ...
 //    (whittakerM(w,0,u*gg) + C*whittakerW(w,0,u*gg));  
 
-type parameterSet = {   time: float<Types.week>;
-                        rho: float; 
-                        r: float<Types.probability>;
-                        lambda: float<Types.cell/Types.week>
-                        } with 
-                        member this.migration = this.rho/(1.-this.rho) * this.lambda
-                        member this.correctPathologicalPoint = { this with rho = this.rho + 0.0001 ; r = this.r+0.00001<Types.probability> }
-                        override this.ToString() = sprintf "Rho: %A r:%A Time:%A Lambda:%A" this.rho this.r this.time this.lambda
-
-let testSystem = {time=1.<Types.week>; rho=0.85; r=0.15<Types.probability>; lambda=2.<Types.cell/Types.week>}
-
-let probabilityCloneSurvival inputParameters =
+let probabilityCloneSurvival (inputParameters: Types.parameterSet) =
     //Note that the below line is incorrect, and the effects corrected later
     //let gamma = 1./inputParameters.rho - 1.
     //Corrected version. Note that the function will need to be inverted for comparison with equivalent matlab code
@@ -68,13 +57,16 @@ let complexSum c =
         | [] -> acc
     core c (complex 0. 0.)
 
-let probabilityCloneSizes inputParameters nRange maxN =
-    let rec core inputParameters nRange maxN attempt maxAttempts =
+let probabilityCloneSizes (inputParameters : Types.parameterSet) nRange maxN =
+    let rec core (inputParameters :Types.parameterSet) nRange maxN attempt maxAttempts =
         //No infinite loops
         if attempt = maxAttempts then failwith("Too many attempts to modify a pathological point")
         
         let N = if List.max nRange >= maxN then List.max nRange + 1 else maxN
-        let gamma = 1./inputParameters.rho - 1.
+        //Note that the below line is incorrect, and the effects corrected later
+        //let gamma = 1./inputParameters.rho - 1.
+        //Corrected version. Note that the function will need to be inverted for comparison with equivalent matlab code
+        let gamma = inputParameters.rho/(1.-inputParameters.rho)
         let T = inputParameters.lambda * inputParameters.time
         let k = List.init N (fun item -> exp(complex 0. (float(item)/float(N)*System.Math.PI*2.)) )
         let gVals = List.map (fun zMember -> if zMember = complex 1. 0. then complex 1. 0. else F zMember zMember (T*1.<Types.cell^-1>) (inputParameters.r*1.<Types.probability^-1>) gamma) k 
@@ -91,7 +83,7 @@ let probabilityCloneSizes inputParameters nRange maxN =
     core inputParameters nRange maxN 0 1
 
 let createParameterSet rhoRange rRange lambdaRange timePoints = 
-    [ for lambda in lambdaRange do for rho in rhoRange do for r in rRange do for t in timePoints do yield {testSystem with lambda=lambda;time=t;r=r;rho=rho} ]
+    [ for lambda in lambdaRange do for rho in rhoRange do for r in rRange do for t in timePoints do yield {Types.testSystem with lambda=lambda;time=t;r=r;rho=rho} ]
     |> Array.ofList
 
 let restructureParameterSet rhoRange rRange lambdaRange timePoints maxN (oneDimensionalSurvival:MathNet.Numerics.complex []) (oneDimensionalCloneSize: float [] []) =
@@ -108,6 +100,7 @@ let restructureParameterSet rhoRange rRange lambdaRange timePoints maxN (oneDime
         Types.parameterSearch.lambdaRange =   lambdaRange
         Types.parameterSearch.timePoints  =   timePoints
         Types.parameterSearch.maxN        =   maxN
+        Types.parameterSearch.deltaRange  =   Types.Zero
         Types.parameterSearch.cloneSizeMatrix =   Some(probN)
         Types.parameterSearch.survivalMatrix  =   Some(probS)
         Types.parameterSearch.oneDimSizeMatrix = Some(oneDimensionalCloneSize)
