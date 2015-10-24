@@ -82,10 +82,6 @@ let probabilityCloneSizes (inputParameters : Types.parameterSet) nRange maxN =
             p |> Array.ofList
     core inputParameters nRange maxN 0 1
 
-let createParameterSet (input : Types.parameterSearch) = 
-    [ for lambda in input.lambdaRange do for rho in input.rhoRange do for r in input.rRange do for t in input.timePoints do yield {Types.testSystem with lambda=lambda;time=t;r=r;rho=rho} ]
-    |> Array.ofList
-
 let restructureParameterSet (input : Types.parameterSearch) (oneDimensionalSurvival:MathNet.Numerics.complex []) (oneDimensionalCloneSize: float [] []) =
     let rhoN = Array.length input.rhoRange
     let rN = Array.length input.rRange
