@@ -82,27 +82,24 @@ let probabilityCloneSizes (inputParameters : Types.parameterSet) nRange maxN =
             p |> Array.ofList
     core inputParameters nRange maxN 0 1
 
-let createParameterSet rhoRange rRange lambdaRange timePoints = 
-    [ for lambda in lambdaRange do for rho in rhoRange do for r in rRange do for t in timePoints do yield {Types.testSystem with lambda=lambda;time=t;r=r;rho=rho} ]
+let createParameterSet (input : Types.parameterSearch) = 
+    [ for lambda in input.lambdaRange do for rho in input.rhoRange do for r in input.rRange do for t in input.timePoints do yield {Types.testSystem with lambda=lambda;time=t;r=r;rho=rho} ]
     |> Array.ofList
 
-let restructureParameterSet rhoRange rRange lambdaRange timePoints maxN (oneDimensionalSurvival:MathNet.Numerics.complex []) (oneDimensionalCloneSize: float [] []) =
-    let rhoN = Array.length rhoRange
-    let rN = Array.length rRange
-    let lambdaN = Array.length lambdaRange
-    let timePointsN = Array.length timePoints
+let restructureParameterSet (input : Types.parameterSearch) (oneDimensionalSurvival:MathNet.Numerics.complex []) (oneDimensionalCloneSize: float [] []) =
+    let rhoN = Array.length input.rhoRange
+    let rN = Array.length input.rRange
+    let lambdaN = Array.length input.lambdaRange
+    let timePointsN = Array.length input.timePoints
     //Need to check the order of the matrix to avoid matrix transposition
     //printf "Length %A -> Expected %A\n" (Array.length oneDimensionalSurvival) (rhoN*rN*lambdaN*timePointsN)
     let probS = Array.init lambdaN (fun lambda -> Array.init rhoN (fun rho -> Array.init rN (fun r -> Array.init timePointsN (fun t -> oneDimensionalSurvival.[t+(r*timePointsN)+(rho*timePointsN*rN)+(lambda*rhoN*timePointsN*rN)].r  ))))
     let probN = Array.init lambdaN (fun lambda -> Array.init rhoN (fun rho -> Array.init rN (fun r -> Array.init timePointsN (fun t -> oneDimensionalCloneSize.[t+(r*timePointsN)+(rho*timePointsN*rN)+(lambda*rhoN*timePointsN*rN)] ))))
-    {   Types.parameterSearch.rhoRange    =   rhoRange
-        Types.parameterSearch.rRange      =   rRange
-        Types.parameterSearch.lambdaRange =   lambdaRange
-        Types.parameterSearch.timePoints  =   timePoints
-        Types.parameterSearch.maxN        =   maxN
-        Types.parameterSearch.deltaRange  =   Types.Zero
-        Types.parameterSearch.cloneSizeMatrix =   Some(probN)
-        Types.parameterSearch.survivalMatrix  =   Some(probS)
-        Types.parameterSearch.oneDimSizeMatrix = Some(oneDimensionalCloneSize)
-        Types.parameterSearch.oneDimSurvMatrix = Some(oneDimensionalSurvival)
+    {   input with results = Some( 
+                                    {
+                                    Types.scanResults.cloneSizeMatrix =   probN
+                                    Types.scanResults.survivalMatrix  =   probS
+                                    Types.scanResults.oneDimSizeMatrix =  oneDimensionalCloneSize
+                                    Types.scanResults.oneDimSurvMatrix =  oneDimensionalSurvival
+                                    }    )
         }

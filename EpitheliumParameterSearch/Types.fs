@@ -13,10 +13,10 @@ type probability
 
 type delta = Zero | Range of float<probability> list
 
-type scanResults       = {  cloneSizeMatrix:  float [] [] [] [] [] option // lambda x rho x r x time x n
-                            survivalMatrix: float [] [] [] [] option //lambda x rho x r x time
-                            oneDimSizeMatrix: float [] [] option
-                            oneDimSurvMatrix: complex [] option
+type scanResults       = {  cloneSizeMatrix:  float [] [] [] [] []  // lambda x rho x r x time x n
+                            survivalMatrix: float [] [] [] []  //lambda x rho x r x time
+                            oneDimSizeMatrix: float [] [] 
+                            oneDimSurvMatrix: complex [] 
                             }
 
 type parameterSearch = {    rhoRange:       float array
