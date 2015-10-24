@@ -2,7 +2,7 @@
 
 open MathNet.Numerics
 
-let debug = true
+let debug = false
 
 //Todo: implement a gamma function which can accept complex arguements
 //Note: 169 is the max input to this function before the value becomes infinite
