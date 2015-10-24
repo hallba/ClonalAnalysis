@@ -13,9 +13,14 @@ let analyticalScan allParameters =
     //Restructure results and put into a record
     AnalyticalCloneSizeDistribution.restructureParameterSet allParameters probS probN
 
-let simulationScan allParameters =
+let simulationScan allParameters number =
     let completeSet = Types.createParameterSet allParameters
-    let probabilityDistributions = Array.Parallel.map (fun input -> AnalyticalCloneSizeDistribution.probabilityCloneSurvival input) completeSet
+    let probabilityDistributions = Array.Parallel.map (fun input -> input 
+                                                                    |> SimulationCloneSizeDistribution.parameterSetToClone (SimulationCloneSizeDistribution.Specified(allParameters.timePoints))
+                                                                    |> SimulationCloneSizeDistribution.cloneProbability number
+                                                                    ) completeSet
+    //Todo probS is 1 - probabilityDistributions.[x].[0]
+    //Todo probN is probabilityDistributions.[x][1..]
     ()
 
 

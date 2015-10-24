@@ -98,6 +98,10 @@ let initClone = {   state = {   population = {  A = 1<Types.cell>
                     report = None 
                     finalState = None}
 
+let parameterSetToClone timePoints (inp : Types.parameterSet) = 
+    //This needs to include all of the times to be tested!
+    { initClone with lambda = inp.lambda; rho = inp.rho; r = 1.<Types.probability^-1>*inp.r; delta = 1.<Types.probability^-1>*inp.delta; reporting=timePoints }
+
 let specificClone = {initClone with reporting = Specified([1.<Types.week>;2.<Types.week>;4.<Types.week>;8.<Types.week>;12.<Types.week>;26.<Types.week>;52.<Types.week>;78.<Types.week>])}
 
 let hasSimulationFinished clone =
@@ -154,7 +158,7 @@ type cloneSizeDistribution =
 
 let noObservations = {basalObservation=[||];suprabasalObservation=[||];time=0.<Types.week>}
 
-let cloneProbability (clone:clone) number=
+let cloneProbability number (clone:clone)=
     let observations =  match clone.reporting with
                         | Specified(l)  -> List.map (fun time -> {noObservations with time=time}) ((0.<Types.week>)::l)
                         | Regular(r)    -> List.init (int(r.timeLimit/r.frequency)+1) (fun i -> {noObservations with time=float(i)*r.frequency} )
