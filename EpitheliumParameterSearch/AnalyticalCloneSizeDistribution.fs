@@ -90,17 +90,6 @@ let probabilityCloneSizes inputParameters nRange maxN =
             p |> Array.ofList
     core inputParameters nRange maxN 0 1
 
-type parameterSearch = {    rhoRange:       float array
-                            rRange:         float<Types.probability> array
-                            lambdaRange:    float<Types.cell/Types.week> array
-                            timePoints:     float<Types.week> array
-                            maxN:           int
-                            cloneSizeMatrix:  float [] [] [] [] []// lambda x rho x r x time x n
-                            survivalMatrix: float [] [] [] [] //lambda x rho x r x time
-                            oneDimSizeMatrix: float [] []
-                            oneDimSurvMatrix: complex []
-                            }
-
 let createParameterSet rhoRange rRange lambdaRange timePoints = 
     [ for lambda in lambdaRange do for rho in rhoRange do for r in rRange do for t in timePoints do yield {testSystem with lambda=lambda;time=t;r=r;rho=rho} ]
     |> Array.ofList
@@ -114,13 +103,13 @@ let restructureParameterSet rhoRange rRange lambdaRange timePoints maxN (oneDime
     //printf "Length %A -> Expected %A\n" (Array.length oneDimensionalSurvival) (rhoN*rN*lambdaN*timePointsN)
     let probS = Array.init lambdaN (fun lambda -> Array.init rhoN (fun rho -> Array.init rN (fun r -> Array.init timePointsN (fun t -> oneDimensionalSurvival.[t+(r*timePointsN)+(rho*timePointsN*rN)+(lambda*rhoN*timePointsN*rN)].r  ))))
     let probN = Array.init lambdaN (fun lambda -> Array.init rhoN (fun rho -> Array.init rN (fun r -> Array.init timePointsN (fun t -> oneDimensionalCloneSize.[t+(r*timePointsN)+(rho*timePointsN*rN)+(lambda*rhoN*timePointsN*rN)] ))))
-    {   rhoRange    =   rhoRange
-        rRange      =   rRange
-        lambdaRange =   lambdaRange
-        timePoints  =   timePoints
-        maxN        =   maxN
-        cloneSizeMatrix =   probN
-        survivalMatrix  =   probS
-        oneDimSizeMatrix = oneDimensionalCloneSize
-        oneDimSurvMatrix = oneDimensionalSurvival
+    {   Types.parameterSearch.rhoRange    =   rhoRange
+        Types.parameterSearch.rRange      =   rRange
+        Types.parameterSearch.lambdaRange =   lambdaRange
+        Types.parameterSearch.timePoints  =   timePoints
+        Types.parameterSearch.maxN        =   maxN
+        Types.parameterSearch.cloneSizeMatrix =   Some(probN)
+        Types.parameterSearch.survivalMatrix  =   Some(probS)
+        Types.parameterSearch.oneDimSizeMatrix = Some(oneDimensionalCloneSize)
+        Types.parameterSearch.oneDimSurvMatrix = Some(oneDimensionalSurvival)
         }
