@@ -124,13 +124,3 @@ let restructureParameterSet rhoRange rRange lambdaRange timePoints maxN (oneDime
         oneDimSizeMatrix = oneDimensionalCloneSize
         oneDimSurvMatrix = oneDimensionalSurvival
         }
-
-let parameterSearch rhoRange rRange lambdaRange timePoints maxN =
-    let completeSet = createParameterSet rhoRange rRange lambdaRange timePoints
-    
-    //Get numbers
-    let probS = Array.map (fun input -> probabilityCloneSurvival input) completeSet
-    let probN = Array.map (fun input -> probabilityCloneSizes input (List.init maxN (fun i -> i+1)) maxN) completeSet
-
-    //Restructure results and put into a record
-    restructureParameterSet rhoRange rRange lambdaRange timePoints maxN probS probN
