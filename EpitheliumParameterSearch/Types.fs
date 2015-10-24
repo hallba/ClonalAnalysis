@@ -13,16 +13,19 @@ type probability
 
 type delta = Zero | Range of float<probability> list
 
+type scanResults       = {  cloneSizeMatrix:  float [] [] [] [] [] option // lambda x rho x r x time x n
+                            survivalMatrix: float [] [] [] [] option //lambda x rho x r x time
+                            oneDimSizeMatrix: float [] [] option
+                            oneDimSurvMatrix: complex [] option
+                            }
+
 type parameterSearch = {    rhoRange:       float array
                             rRange:         float<probability> array
                             lambdaRange:    float<cell/week> array
                             timePoints:     float<week> array
                             maxN:           int
                             deltaRange:     delta
-                            cloneSizeMatrix:  float [] [] [] [] [] option // lambda x rho x r x time x n
-                            survivalMatrix: float [] [] [] [] option //lambda x rho x r x time
-                            oneDimSizeMatrix: float [] [] option
-                            oneDimSurvMatrix: complex [] option
+                            results:        scanResults option
                             }
 
 type parameterSet = {   time: float<week>;
