@@ -11,7 +11,7 @@ let analyticalScan allParameters =
     let probN = Array.Parallel.map (fun input -> AnalyticalCloneSizeDistribution.probabilityCloneSizes input (List.init allParameters.maxN (fun i -> i+1)) allParameters.maxN) completeSet
 
     //Restructure results and put into a record
-    AnalyticalCloneSizeDistribution.restructureParameterSet allParameters probS probN
+    Types.restructureParameterSet allParameters probS probN
 
 let simulationScan allParameters number =
     let completeSet = Types.createParameterSet allParameters
@@ -27,7 +27,7 @@ let simulationScan allParameters number =
     let probS = Array.Parallel.map (fun (i: float []) -> 1. - i.[0]) probabilityDistributions1D
     //Todo probN is probabilityDistributions.[x][1..]
     let probN = Array.Parallel.map (fun (i: float []) -> Array.init ((Array.length i)-1) (fun j -> i.[j]) ) probabilityDistributions1D
-    AnalyticalCloneSizeDistribution.restructureParameterSet allParameters probS probN
+    Types.restructureParameterSet allParameters probS probN
 
 
 let parameterSearch (input : Types.parameterSearch) approach =

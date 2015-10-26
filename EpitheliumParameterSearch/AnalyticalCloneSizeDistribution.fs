@@ -81,25 +81,3 @@ let probabilityCloneSizes (inputParameters : Types.parameterSet) nRange maxN =
             ignore (printf "Pathological point: %A.\nsum%A=%A\n Making 0.1%% perturbation\n" inputParameters p totalP); core inputParameters.correctPathologicalPoint nRange maxN (attempt+1) maxAttempts else
             p |> Array.ofList
     core inputParameters nRange maxN 0 1
-
-let restructureParameterSet (input : Types.parameterSearch) (oneDimensionalSurvival:float []) (oneDimensionalCloneSize: float [] []) =
-    let rhoN = Array.length input.rhoRange
-    let rN = Array.length input.rRange
-    let lambdaN = Array.length input.lambdaRange
-    let timePointsN = Array.length input.timePoints
-    //Need to check the order of the matrix to avoid matrix transposition
-    //printf "Length %A -> Expected %A\n" (Array.length oneDimensionalSurvival) (rhoN*rN*lambdaN*timePointsN)
-    let (deltaRange,deltaN) = 
-                    match input.deltaRange with
-                    | Types.Zero      -> ([0.],1)
-                    | Types.Range(r)  -> (List.map (fun i -> i*1.<Types.probability^-1>) r,(List.length r))
-    let probS = Array.init deltaN (fun delta -> Array.init lambdaN (fun lambda -> Array.init rhoN (fun rho -> Array.init rN (fun r -> Array.init timePointsN (fun t -> oneDimensionalSurvival.[t+(r*timePointsN)+(rho*timePointsN*rN)+(lambda*rhoN*timePointsN*rN)+(delta*lambdaN*rhoN*timePointsN*rN) ]  )))))
-    let probN = Array.init deltaN (fun delta -> Array.init lambdaN (fun lambda -> Array.init rhoN (fun rho -> Array.init rN (fun r -> Array.init timePointsN (fun t -> oneDimensionalCloneSize.[t+(r*timePointsN)+(rho*timePointsN*rN)+(lambda*rhoN*timePointsN*rN)+(delta*lambdaN*rhoN*timePointsN*rN) ] )))))
-    {   input with results = Some( 
-                                    {
-                                    Types.scanResults.cloneSizeMatrix =   probN
-                                    Types.scanResults.survivalMatrix  =   probS
-                                    Types.scanResults.oneDimSizeMatrix =  oneDimensionalCloneSize
-                                    Types.scanResults.oneDimSurvMatrix =  oneDimensionalSurvival
-                                    }    )
-        }

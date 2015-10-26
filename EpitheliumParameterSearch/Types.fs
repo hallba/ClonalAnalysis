@@ -49,3 +49,24 @@ let createParameterSet (input : parameterSearch) =
                 [ for delta in d do for lambda in input.lambdaRange do for rho in input.rhoRange do for r in input.rRange do for t in input.timePoints do yield {testSystem with delta=delta;lambda=lambda;time=t;r=r;rho=rho} ]
                 |> Array.ofList
 
+let restructureParameterSet (input : parameterSearch) (oneDimensionalSurvival:float []) (oneDimensionalCloneSize: float [] []) =
+    let rhoN = Array.length input.rhoRange
+    let rN = Array.length input.rRange
+    let lambdaN = Array.length input.lambdaRange
+    let timePointsN = Array.length input.timePoints
+    //Need to check the order of the matrix to avoid matrix transposition
+    //printf "Length %A -> Expected %A\n" (Array.length oneDimensionalSurvival) (rhoN*rN*lambdaN*timePointsN)
+    let (deltaRange,deltaN) = 
+                    match input.deltaRange with
+                    | Zero      -> ([0.],1)
+                    | Range(r)  -> (List.map (fun i -> i*1.<probability^-1>) r,(List.length r))
+    let probS = Array.init deltaN (fun delta -> Array.init lambdaN (fun lambda -> Array.init rhoN (fun rho -> Array.init rN (fun r -> Array.init timePointsN (fun t -> oneDimensionalSurvival.[t+(r*timePointsN)+(rho*timePointsN*rN)+(lambda*rhoN*timePointsN*rN)+(delta*lambdaN*rhoN*timePointsN*rN) ]  )))))
+    let probN = Array.init deltaN (fun delta -> Array.init lambdaN (fun lambda -> Array.init rhoN (fun rho -> Array.init rN (fun r -> Array.init timePointsN (fun t -> oneDimensionalCloneSize.[t+(r*timePointsN)+(rho*timePointsN*rN)+(lambda*rhoN*timePointsN*rN)+(delta*lambdaN*rhoN*timePointsN*rN) ] )))))
+    {   input with results = Some( 
+                                    {
+                                    scanResults.cloneSizeMatrix =   probN
+                                    scanResults.survivalMatrix  =   probS
+                                    scanResults.oneDimSizeMatrix =  oneDimensionalCloneSize
+                                    scanResults.oneDimSurvMatrix =  oneDimensionalSurvival
+                                    }    )
+        }
