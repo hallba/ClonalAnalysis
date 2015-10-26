@@ -13,8 +13,8 @@ type probability
 
 type delta = Zero | Range of float<probability> list
 
-type scanResults       = {  cloneSizeMatrix:  float [] [] [] [] []  // lambda x rho x r x time x n
-                            survivalMatrix: float [] [] [] []  //lambda x rho x r x time
+type scanResults       = {  cloneSizeMatrix:  float [] [] [] [] [] []  // delta x lambda x rho x r x time x n
+                            survivalMatrix: float [] [] [] [] []  //delta x lambda x rho x r x time
                             oneDimSizeMatrix: float [] [] 
                             oneDimSurvMatrix: float [] 
                             }
@@ -41,5 +41,11 @@ type parameterSet = {   time: float<week>;
 let testSystem = {time=1.<week>; rho=0.85; r=0.15<probability>; delta=0.<probability>; lambda=2.<cell/week>}
 
 let createParameterSet (input : parameterSearch) = 
-    [ for lambda in input.lambdaRange do for rho in input.rhoRange do for r in input.rRange do for t in input.timePoints do yield {testSystem with lambda=lambda;time=t;r=r;rho=rho} ]
-    |> Array.ofList
+    match input.deltaRange with
+    | Zero ->
+                [ for lambda in input.lambdaRange do for rho in input.rhoRange do for r in input.rRange do for t in input.timePoints do yield {testSystem with lambda=lambda;time=t;r=r;rho=rho} ]
+                |> Array.ofList
+    | Range(d) ->
+                [ for delta in d do for lambda in input.lambdaRange do for rho in input.rhoRange do for r in input.rRange do for t in input.timePoints do yield {testSystem with delta=delta;lambda=lambda;time=t;r=r;rho=rho} ]
+                |> Array.ofList
+

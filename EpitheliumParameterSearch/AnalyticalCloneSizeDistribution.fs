@@ -89,8 +89,12 @@ let restructureParameterSet (input : Types.parameterSearch) (oneDimensionalSurvi
     let timePointsN = Array.length input.timePoints
     //Need to check the order of the matrix to avoid matrix transposition
     //printf "Length %A -> Expected %A\n" (Array.length oneDimensionalSurvival) (rhoN*rN*lambdaN*timePointsN)
-    let probS = Array.init lambdaN (fun lambda -> Array.init rhoN (fun rho -> Array.init rN (fun r -> Array.init timePointsN (fun t -> oneDimensionalSurvival.[t+(r*timePointsN)+(rho*timePointsN*rN)+(lambda*rhoN*timePointsN*rN)].r  ))))
-    let probN = Array.init lambdaN (fun lambda -> Array.init rhoN (fun rho -> Array.init rN (fun r -> Array.init timePointsN (fun t -> oneDimensionalCloneSize.[t+(r*timePointsN)+(rho*timePointsN*rN)+(lambda*rhoN*timePointsN*rN)] ))))
+    let (deltaRange,deltaN) = 
+                    match input.deltaRange with
+                    | Types.Zero      -> ([0.],1)
+                    | Types.Range(r)  -> (List.map (fun i -> i*1.<Types.probability^-1>) r,(List.length r))
+    let probS = Array.init deltaN (fun delta -> Array.init lambdaN (fun lambda -> Array.init rhoN (fun rho -> Array.init rN (fun r -> Array.init timePointsN (fun t -> oneDimensionalSurvival.[t+(r*timePointsN)+(rho*timePointsN*rN)+(lambda*rhoN*timePointsN*rN)+(delta*lambdaN*rhoN*timePointsN*rN) ]  )))))
+    let probN = Array.init deltaN (fun delta -> Array.init lambdaN (fun lambda -> Array.init rhoN (fun rho -> Array.init rN (fun r -> Array.init timePointsN (fun t -> oneDimensionalCloneSize.[t+(r*timePointsN)+(rho*timePointsN*rN)+(lambda*rhoN*timePointsN*rN)+(delta*lambdaN*rhoN*timePointsN*rN) ] )))))
     {   input with results = Some( 
                                     {
                                     Types.scanResults.cloneSizeMatrix =   probN
