@@ -25,7 +25,8 @@ type clone = {  state   : populationState;
                 rho     : float;
                 r       : float;
                 delta   : float;
-                rng     : System.Random;
+                rng     : System.Random
+                maxN    : int; //Maximum *requested* number of cells
                 reporting   : reportStyle
                 report  : populationState list option;
                 finalState : populationState option
@@ -93,6 +94,7 @@ let initClone = {   state = {   population = {  A = 1<Types.cell>
                     rho = 0.85
                     r = 0.15
                     delta = 0.
+                    maxN = 10
                     rng = System.Random()
                     reporting = Regular({timeLimit=200.<Types.week>;frequency=4.<Types.week>;lastReport=0.<Types.week>})
                     report = None 
@@ -158,6 +160,16 @@ type cloneSizeDistribution =
 
 let noObservations = {basalObservation=[||];suprabasalObservation=[||];time=0.<Types.week>}
 
+let zeroExtension n instance =
+    let basalN = Array.length instance.basalFraction
+    let suprabasalN = Array.length instance.suprabasalFraction
+    let basal' = if basalN < n then Array.init n (fun i -> if i < basalN then instance.basalFraction.[i] else 0. ) else instance.basalFraction
+    let suprabasal' = if suprabasalN < n then Array.init n (fun i -> if i < suprabasalN then instance.suprabasalFraction.[i] else 0. ) else instance.suprabasalFraction
+    {instance with basalFraction=basal'; suprabasalFraction=suprabasal'} 
+
+let extendToMax n probabilities =
+    List.map (fun instance -> zeroExtension n instance ) probabilities
+
 let cloneProbability number (clone:clone)=
     let observations =  match clone.reporting with
                         | Specified(l)  -> List.map (fun time -> {noObservations with time=time}) ((0.<Types.week>)::l)
@@ -166,3 +178,6 @@ let cloneProbability number (clone:clone)=
     sims 
     |> Array.fold (fun observations simulation -> List.map2 (fun (o: cloneSizeDistribution) s -> o.add s.population) observations simulation ) observations
     |> List.map (fun timePoint -> timePoint.normalise)
+    //The array must be as long or longer than MaxN- extend the clone size probabilities to reflect this
+    |> extendToMax clone.maxN
+
