@@ -26,6 +26,7 @@ type experimentalDataPoint = {  time: float<Types.week>
 let testSystem = {  time=(11.<Types.week>/7.) ;
                     cloneSize = [| 37;13;11;6;1;4;3;1;0;1;0;0;1;1;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1|] }
 
+//Should this be a part of the simulation code? We do not presently use it
 let estimateZeroP p =
     //For zero probabilities, estimate the value based on the previous two
     //Original code does this only if the last number of clones with observations was <7
@@ -51,48 +52,23 @@ let logLikelihood prob obs =
 let normaliseTimePointsForSurvival cloneSizes survival =
     Array.map2 (fun nt st -> Array.map (fun nti -> nti/st) nt) cloneSizes survival
 
-let rec individualLogLikelihoodContribution pIndividual (search:Types.parameterSearch) (data:experimentalDataPoint list) acc =
-    match data with
-    | [] -> acc
-    | datapoint::rest ->  individualLogLikelihoodContribution pIndividual search rest (acc+logLikelihood pIndividual datapoint)
+let individualLogLikelihoodContribution (pIndividual: float [] []) (search:Types.parameterSearch) (data:experimentalDataPoint list) =
+    let timeMap = Map.ofArray (Array.mapi (fun i time -> (time,i)) search.timePoints)
+    let correspondingP = List.map (fun dataPoint -> pIndividual.[timeMap.[dataPoint.time]] ) data
+    List.map2 (fun dataPoint probabilityDist -> logLikelihood probabilityDist dataPoint) data correspondingP 
+    |> List.fold (fun acc p -> acc + p)  0.
 
 let constructLogLikelihoodMatrix data P (search:Types.parameterSearch) =
     let deltaRange =    match search.deltaRange with
                         | Types.Zero -> [|0.<Types.probability>|]
                         | Types.Range(r) -> Array.ofList r
-    let L = Array.init (Array.length deltaRange) (fun d -> Array.init (Array.length search.lambdaRange) (fun l -> Array.init (Array.length search.rhoRange) (fun rho -> Array.init (Array.length search.rRange) (fun r -> 0. ) ) ) )
-            |> Types.resultsMap2 (fun pIndividual lIndividual -> individualLogLikelihoodContribution pIndividual search data lIndividual ) P
-    L
+    Types.resultsMap2 (fun pIndividual lIndividual -> individualLogLikelihoodContribution pIndividual search data ) P
 
 let getLikelihood data (search:Types.parameterSearch) =
-    //let C = Array.map (fun (dataPoint:experimentalDataPoint) -> dataPoint.regularise) data
-    //let ind = Array.map (fun (dataPoint:experimentalDataPoint) -> dataPoint.indices) data
     let results =   match search.results with
                     | None -> failwith "Attempting to calculate a likelihood without having calculated a probability distribution"
                     | Some(res) -> res
-    //Normalise probabilities to assume survival of stem cells and "fill out" zero values
-    //NB is this filling out really necessary? 
-//    let P = Array.map2 (fun surv size -> Array.map (fun oneSize -> oneSize/surv) size) results.oneDimSurvMatrix results.oneDimSizeMatrix
-//            |> Array.map (fun p -> estimateZeroP p)
     //Normalise count probabilities assuming survival
     let P = Types.resultsMap2 normaliseTimePointsForSurvival results.cloneSizeMatrix results.survivalMatrix
     let data = List.map (fun (obs:experimentalDataPoint) -> obs.extend search.maxN) data
-    //Sum log likelihoods pseudo code
-//    Foreach prob in parameterset
-//        C = regularised prob
-//        Foreach dataset in data
-//          let result =  Map2 (fun pi oi -> log(pi)*oi) prob data
-//                        |> Fold (fun acc logL -> acc + logL) C
-    //Matlab code
-//                    for k=data_ind
-//                    X = log(P(ind{k})).*D{k}(ind{k});
-//                    if(any(isinf(X)) || any(isnan(X)))
-//                        disp(['Infinity encountered at data set =' num2str(k) ...
-//                            ' lambda=' num2str(lambdaRange(L1)) ...
-//                            ' rho=' num2str(rhoRange(L2)) ...
-//                            ' r=' num2str(rRange(L3)) ])
-//                        disp('Ignoring zero or negative values of probability')
-//                    end
-//                    L(L1,L2,L3) = L(L1,L2,L3) + C(k) + sum(X(~isinf(X)));
-//                end
     constructLogLikelihoodMatrix data P search
