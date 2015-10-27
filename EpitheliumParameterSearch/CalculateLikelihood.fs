@@ -54,7 +54,7 @@ let normaliseTimePointsForSurvival cloneSizes survival =
 
 let individualLogLikelihoodContribution (pIndividual: float [] []) (search:Types.parameterSearch) (data:experimentalDataPoint list) =
     let timeMap = Map.ofArray (Array.mapi (fun i time -> (time,i)) search.timePoints)
-    let correspondingP = List.map (fun dataPoint -> pIndividual.[timeMap.[dataPoint.time]] ) data
+    let correspondingP = List.map (fun dataPoint -> pIndividual.[timeMap.[dataPoint.time]] ) data //We could easily correct everything here...
     List.map2 (fun dataPoint probabilityDist -> logLikelihood probabilityDist dataPoint) data correspondingP 
     |> List.fold (fun acc p -> acc + p)  0.
 
