@@ -160,15 +160,17 @@ type cloneSizeDistribution =
 
 let noObservations = {basalObservation=[||];suprabasalObservation=[||];time=0.<Types.week>}
 
-let zeroExtension n instance =
+let forceArrayLength n instance =
+    let n = n + 1 //This is intended to correct for the fact that the first value is the probability of no clones so we need n+1 obs to include prob for n clones
     let basalN = Array.length instance.basalFraction
     let suprabasalN = Array.length instance.suprabasalFraction
-    let basal' = if basalN < n then Array.init n (fun i -> if i < basalN then instance.basalFraction.[i] else 0. ) else instance.basalFraction
-    let suprabasal' = if suprabasalN < n then Array.init n (fun i -> if i < suprabasalN then instance.suprabasalFraction.[i] else 0. ) else instance.suprabasalFraction
+    let basal' =    if basalN < n || basalN > n then Array.init n (fun i -> if i < basalN then instance.basalFraction.[i] else 0. ) 
+                    else instance.basalFraction
+    let suprabasal' = if suprabasalN < n || suprabasalN > n then Array.init n (fun i -> if i < suprabasalN then instance.suprabasalFraction.[i] else 0. ) else instance.suprabasalFraction
     {instance with basalFraction=basal'; suprabasalFraction=suprabasal'} 
 
-let extendToMax n probabilities =
-    List.map (fun instance -> zeroExtension n instance ) probabilities
+let enforceMax n probabilities =
+    List.map (fun instance -> forceArrayLength n instance ) probabilities
 
 let cloneProbability number (clone:clone)=
     let observations =  match clone.reporting with
@@ -179,5 +181,11 @@ let cloneProbability number (clone:clone)=
     |> Array.fold (fun observations simulation -> List.map2 (fun (o: cloneSizeDistribution) s -> o.add s.population) observations simulation ) observations
     |> List.map (fun timePoint -> timePoint.normalise)
     //The array must be as long or longer than MaxN- extend the clone size probabilities to reflect this
-    |> extendToMax clone.maxN
+    |> enforceMax clone.maxN   //Add zeros to make arrays as long as maxN requires
+                               //Ignore probabilities above maxN as they should never be observed
+    |> (fun output ->
+        match output with
+        | [] -> failwith "No datapoints created!"
+        | initPoint::rest -> rest //Discard t0 
+        )
 
