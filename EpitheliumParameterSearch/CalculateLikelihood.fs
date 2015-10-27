@@ -51,23 +51,23 @@ let logLikelihood prob obs =
 let normaliseTimePointsForSurvival cloneSizes survival =
     Array.map2 (fun nt st -> Array.map (fun nti -> nti/st) nt) cloneSizes survival
 
-let rec individualLogLikelihoodContribution pIndividual (pGlobal:Types.parameterSearch) (data:experimentalDataPoint list) acc =
+let rec individualLogLikelihoodContribution pIndividual (search:Types.parameterSearch) (data:experimentalDataPoint list) acc =
     match data with
     | [] -> acc
-    | datapoint::rest ->  individualLogLikelihoodContribution pIndividual pGlobal rest (acc+logLikelihood pIndividual datapoint)
+    | datapoint::rest ->  individualLogLikelihoodContribution pIndividual search rest (acc+logLikelihood pIndividual datapoint)
 
-let constructLogLikelihoodMatrix data (p:Types.parameterSearch) =
-    let deltaRange =    match p.deltaRange with
+let constructLogLikelihoodMatrix data P (search:Types.parameterSearch) =
+    let deltaRange =    match search.deltaRange with
                         | Types.Zero -> [|0.<Types.probability>|]
                         | Types.Range(r) -> Array.ofList r
-    let L = Array.init (Array.length deltaRange) (fun d -> Array.init (Array.length p.lambdaRange) (fun l -> Array.init (Array.length p.rhoRange) (fun rho -> Array.init (Array.length p.rRange) (fun r -> 0. ) ) ) )
-            |> Types.resultsMap2 (fun acc -> individualLogLikelihoodContribution p data acc) 
+    let L = Array.init (Array.length deltaRange) (fun d -> Array.init (Array.length search.lambdaRange) (fun l -> Array.init (Array.length search.rhoRange) (fun rho -> Array.init (Array.length search.rRange) (fun r -> 0. ) ) ) )
+            |> Types.resultsMap2 (fun pIndividual lIndividual -> individualLogLikelihoodContribution pIndividual search data lIndividual ) P
     L
 
-let getLikelihood data (probabilities:Types.parameterSearch) =
+let getLikelihood data (search:Types.parameterSearch) =
     //let C = Array.map (fun (dataPoint:experimentalDataPoint) -> dataPoint.regularise) data
     //let ind = Array.map (fun (dataPoint:experimentalDataPoint) -> dataPoint.indices) data
-    let results =   match probabilities.results with
+    let results =   match search.results with
                     | None -> failwith "Attempting to calculate a likelihood without having calculated a probability distribution"
                     | Some(res) -> res
     //Normalise probabilities to assume survival of stem cells and "fill out" zero values
@@ -76,7 +76,7 @@ let getLikelihood data (probabilities:Types.parameterSearch) =
 //            |> Array.map (fun p -> estimateZeroP p)
     //Normalise count probabilities assuming survival
     let P = Types.resultsMap2 normaliseTimePointsForSurvival results.cloneSizeMatrix results.survivalMatrix
-    let data = List.map (fun (obs:experimentalDataPoint) -> obs.extend probabilities.maxN) data
+    let data = List.map (fun (obs:experimentalDataPoint) -> obs.extend search.maxN) data
     //Sum log likelihoods pseudo code
 //    Foreach prob in parameterset
 //        C = regularised prob
@@ -95,7 +95,4 @@ let getLikelihood data (probabilities:Types.parameterSearch) =
 //                    end
 //                    L(L1,L2,L3) = L(L1,L2,L3) + C(k) + sum(X(~isinf(X)));
 //                end
-
-    let parameterSpace = (Array.length deltaRange)*(Array.length probabilities.lambdaRange)*(Array.length probabilities.rRange)*(Array.length probabilities.rhoRange)
-    //let L = Array.init parameterSpace (fun i -> 0.)
-    0.
+    constructLogLikelihoodMatrix data P search
