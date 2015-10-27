@@ -70,3 +70,12 @@ let restructureParameterSet (input : parameterSearch) (oneDimensionalSurvival:fl
                                     scanResults.oneDimSurvMatrix =  oneDimensionalSurvival
                                     }    )
         }
+
+let resultsMap f input =
+    //Apply a function to every parameter in the results cloneSizeMatrix
+    //For each parameter there is an array (time) of arrays (probability of seeing a number of clones, from 1 to maxN)
+    //d * l * rho * r
+    Array.map (fun d -> Array.map (fun l -> Array.map (fun rho -> Array.map (fun r -> f r) rho ) l ) d ) input
+
+let resultsMap2 f input1 input2 =
+    Array.map2 (fun d1 d2 -> Array.map2 (fun l1 l2 -> Array.map2 (fun rho1 rho2 -> Array.map2 (fun r1 r2 -> f r1 r2) rho1 rho2 ) l1 l2 ) d1 d2 ) input1 input2

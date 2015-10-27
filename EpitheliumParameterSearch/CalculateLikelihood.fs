@@ -18,6 +18,10 @@ type experimentalDataPoint = {  time: float<Types.week>
                                                         |> Array.mapi ( fun i o -> (i,o) )
                                                         |> Array.filter ( fun b -> snd(b) > 0 )
                                                         |> Array.map ( fun b -> fst(b) )
+                                member this.extend n = if n > (Array.length this.cloneSize ) then 
+                                                            let cloneSize' = Array.init n (fun i -> if i < (Array.length this.cloneSize ) then this.cloneSize.[i] else 0 )
+                                                            {this with cloneSize=cloneSize' }
+                                                       else failwith "Cannot curtail a set of observations"
 
 let testSystem = {  time=(11.<Types.week>/7.) ;
                     cloneSize = [| 37;13;11;6;1;4;3;1;0;1;0;0;1;1;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1|] }
@@ -40,16 +44,58 @@ let estimateZeroP p =
              |> (fun sum -> sum/float(i2-i1))  
     Array.mapi (fun id prob -> if id < i0 then prob else p.[i0]**float((id-i0))  ) 
 
-let getLikelihood data (probabilities:Types.parameterSearch )=
-    let C = Array.map (fun (dataPoint:experimentalDataPoint) -> dataPoint.regularise) data
-    let ind = Array.map (fun (dataPoint:experimentalDataPoint) -> dataPoint.indices) data
+let logLikelihood prob obs =
+    Array.map2  (fun p o -> log(p)*float(o) ) prob obs.cloneSize
+    |> Array.fold (fun acc L -> L+acc ) obs.regularise
+
+let normaliseTimePointsForSurvival cloneSizes survival =
+    Array.map2 (fun nt st -> Array.map (fun nti -> nti/st) nt) cloneSizes survival
+
+let rec individualLogLikelihoodContribution pIndividual (pGlobal:Types.parameterSearch) (data:experimentalDataPoint list) acc =
+    match data with
+    | [] -> acc
+    | datapoint::rest ->  individualLogLikelihoodContribution pIndividual pGlobal rest (acc+logLikelihood pIndividual datapoint)
+
+let constructLogLikelihoodMatrix data (p:Types.parameterSearch) =
+    let deltaRange =    match p.deltaRange with
+                        | Types.Zero -> [|0.<Types.probability>|]
+                        | Types.Range(r) -> Array.ofList r
+    let L = Array.init (Array.length deltaRange) (fun d -> Array.init (Array.length p.lambdaRange) (fun l -> Array.init (Array.length p.rhoRange) (fun rho -> Array.init (Array.length p.rRange) (fun r -> 0. ) ) ) )
+            |> Types.resultsMap2 (fun acc -> individualLogLikelihoodContribution p data acc) 
+    L
+
+let getLikelihood data (probabilities:Types.parameterSearch) =
+    //let C = Array.map (fun (dataPoint:experimentalDataPoint) -> dataPoint.regularise) data
+    //let ind = Array.map (fun (dataPoint:experimentalDataPoint) -> dataPoint.indices) data
     let results =   match probabilities.results with
                     | None -> failwith "Attempting to calculate a likelihood without having calculated a probability distribution"
                     | Some(res) -> res
-    let P = Array.map2 (fun surv size -> Array.map (fun oneSize -> oneSize/surv) size) results.oneDimSurvMatrix results.oneDimSizeMatrix
-            |> Array.map (fun p -> estimateZeroP p)
-    let deltaRange =    match probabilities.deltaRange with
-                        | Types.Zero -> [0.<Types.probability>]
-                        | Types.Range(r) -> r
-    let L = Array.init ((List.length deltaRange)*(Array.length probabilities.lambdaRange)*(Array.length probabilities.rRange)*(Array.length probabilities.rhoRange)) (fun i -> 0.)
+    //Normalise probabilities to assume survival of stem cells and "fill out" zero values
+    //NB is this filling out really necessary? 
+//    let P = Array.map2 (fun surv size -> Array.map (fun oneSize -> oneSize/surv) size) results.oneDimSurvMatrix results.oneDimSizeMatrix
+//            |> Array.map (fun p -> estimateZeroP p)
+    //Normalise count probabilities assuming survival
+    let P = Types.resultsMap2 normaliseTimePointsForSurvival results.cloneSizeMatrix results.survivalMatrix
+    let data = List.map (fun (obs:experimentalDataPoint) -> obs.extend probabilities.maxN) data
+    //Sum log likelihoods pseudo code
+//    Foreach prob in parameterset
+//        C = regularised prob
+//        Foreach dataset in data
+//          let result =  Map2 (fun pi oi -> log(pi)*oi) prob data
+//                        |> Fold (fun acc logL -> acc + logL) C
+    //Matlab code
+//                    for k=data_ind
+//                    X = log(P(ind{k})).*D{k}(ind{k});
+//                    if(any(isinf(X)) || any(isnan(X)))
+//                        disp(['Infinity encountered at data set =' num2str(k) ...
+//                            ' lambda=' num2str(lambdaRange(L1)) ...
+//                            ' rho=' num2str(rhoRange(L2)) ...
+//                            ' r=' num2str(rRange(L3)) ])
+//                        disp('Ignoring zero or negative values of probability')
+//                    end
+//                    L(L1,L2,L3) = L(L1,L2,L3) + C(k) + sum(X(~isinf(X)));
+//                end
+
+    let parameterSpace = (Array.length deltaRange)*(Array.length probabilities.lambdaRange)*(Array.length probabilities.rRange)*(Array.length probabilities.rhoRange)
+    //let L = Array.init parameterSpace (fun i -> 0.)
     0.
