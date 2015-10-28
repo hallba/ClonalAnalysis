@@ -46,9 +46,7 @@ let estimateZeroP p =
     Array.mapi (fun id prob -> if id < i0 then prob else p.[i0]**float((id-i0))  ) 
 
 let logLikelihood prob obs =
-    Array.map2  (fun p o -> let logP = log(p)
-                            ignore (if System.Double.IsInfinity (logP) then printf "log %A-> NaN\n" p else () )
-                            logP*float(o) ) prob obs.cloneSize
+    Array.map2  (fun p o -> if o = 0 then 0. else log(p)*float(o) ) prob obs.cloneSize
     |> Array.fold (fun acc L -> L+acc ) obs.regularise
 
 let normaliseTimePointsForSurvival cloneSizes survival =
