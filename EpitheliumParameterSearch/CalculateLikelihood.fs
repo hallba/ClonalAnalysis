@@ -52,6 +52,24 @@ let logLikelihood prob obs =
 let normaliseTimePointsForSurvival cloneSizes survival =
     Array.map2 (fun nt st -> Array.map (fun nti -> nti/st) nt) cloneSizes survival
 
+let extrapolateZeroProbabilities p =
+    //This is to replace the function from the previous implementation (see estimateZeroP)
+    //This accepts an array of floats, finds the first zero and replaces all future values on 
+    //the basis of an extrapolation from *at least* the last two good points
+    let i0 = ( Array.findIndex (fun i -> i=0.) p ) - 1
+    let lastNonZero = p.[i0-1]
+    let ratio =
+        if i0 <= 7 then 
+            p.[i0-1] / p.[i0-2]
+        else
+            //try get an average ratio
+            let i1 = int(round(float(i0)*0.65))
+            let i2 = int(round(float(i0)*0.75))
+            Array.map2 (fun a b -> a/b) ( Array.init (i2-i1) (fun i -> p.[i1+i]) ) ( Array.init (i2-i1) (fun i -> p.[i1+i-1]) )
+                        |> Array.fold (fun acc diff -> acc+diff ) 0.
+                        |> (fun sum -> sum/float(i2-i1))  
+    Array.mapi (fun i prob -> if i < i0 then prob else lastNonZero*(pown ratio (1+i-i0))  ) p 
+
 let individualLogLikelihoodContribution (pIndividual: float [] []) (search:Types.parameterSearch) (data:experimentalDataPoint list) =
     let timeMap = Map.ofArray (Array.mapi (fun i time -> (time,i)) search.timePoints)
     let correspondingP = List.map (fun dataPoint -> pIndividual.[timeMap.[dataPoint.time]] ) data //We could easily correct everything here...
@@ -68,7 +86,8 @@ let getLikelihood data (search:Types.parameterSearch) =
     let results =   match search.results with
                     | None -> failwith "Attempting to calculate a likelihood without having calculated a probability distribution"
                     | Some(res) -> res
-    //Normalise count probabilities assuming survival
+    //Normalise count probabilities assuming survival & extrapolate values for "zero" probabilities
     let P = Types.resultsMap2 normaliseTimePointsForSurvival results.cloneSizeMatrix results.survivalMatrix
+            |> Types.resultsMap (fun pt -> Array.map (fun p -> extrapolateZeroProbabilities p) pt)
     let data = List.map (fun (obs:experimentalDataPoint) -> obs.extend search.maxN) data
     constructLogLikelihoodMatrix data P search
