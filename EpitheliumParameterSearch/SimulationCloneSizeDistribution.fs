@@ -102,7 +102,7 @@ let initClone = {   state = {   population = {  A = 1<Types.cell>
 
 let parameterSetToClone timePoints (inp : Types.parameterSet) = 
     //This needs to include all of the times to be tested!
-    { initClone with lambda = inp.lambda; rho = inp.rho; r = 1.<Types.probability^-1>*inp.r; delta = 1.<Types.probability^-1>*inp.delta; reporting=timePoints }
+    { initClone with lambda = inp.lambda; rho = inp.rho; r = 1.<Types.probability^-1>*inp.r; delta = 1.<Types.probability^-1>*inp.delta; reporting=timePoints ; maxN = inp.maxN}
 
 let specificClone = {initClone with reporting = Specified([1.<Types.week>;2.<Types.week>;4.<Types.week>;8.<Types.week>;12.<Types.week>;26.<Types.week>;52.<Types.week>;78.<Types.week>])}
 

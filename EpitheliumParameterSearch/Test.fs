@@ -19,3 +19,5 @@ let kasumiCG = {
                             Types.deltaRange    =   Types.Zero
                             Types.results       =   None
                             }
+
+let testClone = Types.testSystem |> SimulationCloneSizeDistribution.parameterSetToClone (SimulationCloneSizeDistribution.Specified([1.428571429<Types.week>;])) ;;
