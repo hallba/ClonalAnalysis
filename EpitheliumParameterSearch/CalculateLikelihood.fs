@@ -46,7 +46,9 @@ let estimateZeroP p =
     Array.mapi (fun id prob -> if id < i0 then prob else p.[i0]**float((id-i0))  ) 
 
 let logLikelihood prob obs =
-    Array.map2  (fun p o -> log(p)*float(o) ) prob obs.cloneSize
+    Array.map2  (fun p o -> let logP = log(p)
+                            ignore (if System.Double.IsInfinity (logP) then printf "log %A-> NaN\n" p else () )
+                            logP*float(o) ) prob obs.cloneSize
     |> Array.fold (fun acc L -> L+acc ) obs.regularise
 
 let normaliseTimePointsForSurvival cloneSizes survival =
@@ -56,6 +58,9 @@ let extrapolateZeroProbabilities p =
     //This is to replace the function from the previous implementation (see estimateZeroP)
     //This accepts an array of floats, finds the first zero and replaces all future values on 
     //the basis of an extrapolation from *at least* the last two good points
+
+    //The value must never become 0. as a log is ultimately applied
+    //To avoid this p hits a minimum it becomes the smallest possible double- 4.940656458e-324
     let i0 = ( Array.findIndex (fun i -> i=0.) p ) - 1
     let lastNonZero = p.[i0-1]
     let ratio =
@@ -68,7 +73,10 @@ let extrapolateZeroProbabilities p =
             Array.map2 (fun a b -> a/b) ( Array.init (i2-i1) (fun i -> p.[i1+i]) ) ( Array.init (i2-i1) (fun i -> p.[i1+i-1]) )
                         |> Array.fold (fun acc diff -> acc+diff ) 0.
                         |> (fun sum -> sum/float(i2-i1))  
-    Array.mapi (fun i prob -> if i < i0 then prob else lastNonZero*(pown ratio (1+i-i0))  ) p 
+    Array.mapi (fun i prob -> if i < i0 then prob else 
+                                                        let a = lastNonZero*(pown ratio (1+i-i0))
+                                                        if a > 0. then a else 4.940656458e-324
+                                                        ) p 
 
 let individualLogLikelihoodContribution (pIndividual: float [] []) (search:Types.parameterSearch) (data:experimentalDataPoint list) =
     let timeMap = Map.ofArray (Array.mapi (fun i time -> (time,i)) search.timePoints)
