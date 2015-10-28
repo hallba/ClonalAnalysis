@@ -21,8 +21,8 @@ type experimentalDataPoint = {  time: float<Types.week>
                                 member this.extend n = if n > (Array.length this.cloneSize ) then 
                                                             let cloneSize' = Array.init n (fun i -> if i < (Array.length this.cloneSize ) then this.cloneSize.[i] else 0 )
                                                             {this with cloneSize=cloneSize' }
-                                                       else failwith "Cannot curtail a set of observations"
-
+                                                       else if n < (Array.length this.cloneSize ) then failwith "Cannot curtail a set of observations"
+                                                       else this
 let testSystem = {  time=(11.<Types.week>/7.) ;
                     cloneSize = [| 37;13;11;6;1;4;3;1;0;1;0;0;1;1;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1|] }
 
