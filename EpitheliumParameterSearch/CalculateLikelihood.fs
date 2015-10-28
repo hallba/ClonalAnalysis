@@ -76,12 +76,6 @@ let individualLogLikelihoodContribution (pIndividual: float [] []) (search:Types
     List.map2 (fun dataPoint probabilityDist -> logLikelihood probabilityDist dataPoint) data correspondingP 
     |> List.fold (fun acc p -> acc + p)  0.
 
-let constructLogLikelihoodMatrix data P (search:Types.parameterSearch) =
-    let deltaRange =    match search.deltaRange with
-                        | Types.Zero -> [|0.<Types.probability>|]
-                        | Types.Range(r) -> Array.ofList r
-    Types.resultsMap (fun pIndividual -> individualLogLikelihoodContribution pIndividual search data ) P
-
 let getLikelihood data (search:Types.parameterSearch) =
     let results =   match search.results with
                     | None -> failwith "Attempting to calculate a likelihood without having calculated a probability distribution"
@@ -90,4 +84,4 @@ let getLikelihood data (search:Types.parameterSearch) =
     let P = Types.resultsMap2 normaliseTimePointsForSurvival results.cloneSizeMatrix results.survivalMatrix
             |> Types.resultsMap (fun pt -> Array.map (fun p -> extrapolateZeroProbabilities p) pt)
     let data = List.map (fun (obs:experimentalDataPoint) -> obs.extend search.maxN) data
-    constructLogLikelihoodMatrix data P search
+    Types.resultsMap (fun pIndividual -> individualLogLikelihoodContribution pIndividual search data ) P
