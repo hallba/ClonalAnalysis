@@ -20,7 +20,7 @@ let simulationScan allParameters number =
                                                                     |> SimulationCloneSizeDistribution.cloneProbability number
                                                                     ) completeSet
     let oneDLength = (Array.length probabilityDistributions) * (Array.length allParameters.timePoints)
-    let convert i = ( (i % (Array.length allParameters.timePoints)), (i / (Array.length probabilityDistributions)) )
+    let convert i = ( (i % (Array.length allParameters.timePoints)), (i / (Array.length allParameters.timePoints)) )
     let probabilityDistributions1D = Array.init oneDLength (fun i -> let (t,r) = convert i
                                                                      probabilityDistributions.[r].[t].basalFraction )
     //Todo probS is 1 - probabilityDistributions.[x].[0]
