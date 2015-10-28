@@ -62,7 +62,7 @@ let constructLogLikelihoodMatrix data P (search:Types.parameterSearch) =
     let deltaRange =    match search.deltaRange with
                         | Types.Zero -> [|0.<Types.probability>|]
                         | Types.Range(r) -> Array.ofList r
-    Types.resultsMap2 (fun pIndividual lIndividual -> individualLogLikelihoodContribution pIndividual search data ) P
+    Types.resultsMap (fun pIndividual -> individualLogLikelihoodContribution pIndividual search data ) P
 
 let getLikelihood data (search:Types.parameterSearch) =
     let results =   match search.results with
