@@ -86,3 +86,10 @@ let resultsMapi f input =
 
 let resultsMap2 f input1 input2 =
     Array.map2 (fun d1 d2 -> Array.map2 (fun l1 l2 -> Array.map2 (fun rho1 rho2 -> Array.map2 (fun r1 r2 -> f r1 r2) rho1 rho2 ) l1 l2 ) d1 d2 ) input1 input2
+
+let likelihoodTo1D input = 
+    let dL = Array.length input
+    let lL = Array.length input.[0]
+    let rhoL = Array.length input.[0].[0]
+    let rL = Array.length input.[0].[0].[0]
+    Array.init (dL*lL*rhoL*rL) (fun i -> input.[(i/(rL*rhoL*lL))%dL].[(i/(rL*rhoL))%lL].[(i/rL)%rhoL].[i%rL])
