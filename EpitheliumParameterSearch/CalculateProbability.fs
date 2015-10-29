@@ -14,15 +14,16 @@ let analyticalScan allParameters =
     Types.restructureParameterSet allParameters probS probN
 
 let simulationScan allParameters number =
-    let completeSet = Types.createParameterSet allParameters
+    //Simulations do not respect timepoints as input parameters
+    let completeSet = Types.createParameterSet {allParameters with timePoints=[|0.<Types.week>|]}
     let probabilityDistributions = Array.Parallel.map (fun input -> input 
                                                                     |> SimulationCloneSizeDistribution.parameterSetToClone (SimulationCloneSizeDistribution.Specified(List.ofArray allParameters.timePoints))
                                                                     |> SimulationCloneSizeDistribution.cloneProbability number
                                                                     ) completeSet
+    //Investigate issue here
     let oneDLength = (Array.length probabilityDistributions) * (Array.length allParameters.timePoints)
-    let convert i = ( (i % (Array.length allParameters.timePoints)), (i / (Array.length allParameters.timePoints)) )
-    let probabilityDistributions1D = Array.init oneDLength (fun i -> let (t,r) = convert i
-                                                                     probabilityDistributions.[r].[t].basalFraction )
+    let convert i =  probabilityDistributions.[(i / (Array.length allParameters.timePoints))].[(i % (Array.length allParameters.timePoints))].basalFraction
+    let probabilityDistributions1D = Array.init oneDLength (fun i -> convert i )
     //Todo probS is 1 - probabilityDistributions.[x].[0]
     let probS = Array.Parallel.map (fun (i: float []) -> 1. - i.[0]) probabilityDistributions1D
     //Todo probN is probabilityDistributions.[x][1..]

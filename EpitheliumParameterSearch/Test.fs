@@ -24,9 +24,9 @@ let kasumiCG = {
 
 let tinyScan = {
                             Types.timePoints    =   [|(11.<Types.week>/7.); (21.<Types.week>/7.)|]
-                            Types.rhoRange      =   [|0.15;0.20|]
+                            Types.rhoRange      =   [|0.15;0.20;0.25|]
                             Types.rRange        =   [|0.1<Types.probability>;0.15<Types.probability>|]
-                            Types.lambdaRange   =   [|1.<Types.cell/Types.week>;1.2<Types.cell/Types.week>|]
+                            Types.lambdaRange   =   [|1.<Types.cell/Types.week>;1.2<Types.cell/Types.week>;1.4<Types.cell/Types.week>;1.6<Types.cell/Types.week>|]
                             Types.maxN          =   195
                             Types.deltaRange    =   Types.Zero
                             Types.results       =   None
