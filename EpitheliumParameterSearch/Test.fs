@@ -22,6 +22,16 @@ let kasumiCG = {
                             Types.results       =   None
                             }//200 = 20 mins Simulation
 
+let tinyScan = {
+                            Types.timePoints    =   [|(11.<Types.week>/7.); (21.<Types.week>/7.)|]
+                            Types.rhoRange      =   [|0.15;0.20|]
+                            Types.rRange        =   [|0.1<Types.probability>;0.15<Types.probability>|]
+                            Types.lambdaRange   =   [|1.<Types.cell/Types.week>;1.2<Types.cell/Types.week>|]
+                            Types.maxN          =   195
+                            Types.deltaRange    =   Types.Zero
+                            Types.results       =   None
+                }
+
 let testClone = Types.testSystem |> SimulationCloneSizeDistribution.parameterSetToClone (SimulationCloneSizeDistribution.Specified([1.428571429<Types.week>;])) ;;
 
 let kasumiWTData = [
