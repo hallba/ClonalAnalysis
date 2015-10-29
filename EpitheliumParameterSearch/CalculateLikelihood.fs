@@ -60,19 +60,26 @@ let extrapolateZeroProbabilities p =
     //The value must never become 0. as a log is ultimately applied
     //To avoid this p hits a minimum it becomes the smallest possible double- 4.940656458e-324
     let i0 = ( Array.findIndex (fun i -> i=0.) p ) - 1
-    let lastNonZero = p.[i0-1]
+    //printf "%A %A %A %A -> i=%A\n" a b c d i0
+    let lastNonZero = if i0 > 0 then p.[i0-1] else 4.940656458e-324
     let ratio =
-        if i0 <= 7 then 
-            p.[i0-1] / p.[i0-2]
+        if i0<=0 then 
+            //If we only have one or fewer values, we can't extrapolate so just set it to 0
+            (fun i -> 4.940656458e-324)
+        else if i0 <= 7 then 
+            (fun i -> pown (p.[i0] / p.[i0-1]) i)
         else
             //try get an average ratio
             let i1 = int(round(float(i0)*0.65))
             let i2 = int(round(float(i0)*0.75))
-            Array.map2 (fun a b -> a/b) ( Array.init (i2-i1) (fun i -> p.[i1+i]) ) ( Array.init (i2-i1) (fun i -> p.[i1+i-1]) )
+            //printf "i1=%A i2=%A\n" i1 i2
+            let r = Array.map2 (fun a b -> a/b) ( Array.init (i2-i1) (fun i -> p.[i1+i]) ) ( Array.init (i2-i1) (fun i -> p.[i1+i-1]) )
                         |> Array.fold (fun acc diff -> acc+diff ) 0.
                         |> (fun sum -> sum/float(i2-i1))  
+            (fun i -> pown r i)
+
     Array.mapi (fun i prob -> if i < i0 then prob else 
-                                                        let a = lastNonZero*(pown ratio (1+i-i0))
+                                                        let a = lastNonZero*(ratio (1+i-i0))
                                                         if a > 0. then a else 4.940656458e-324
                                                         ) p 
 
