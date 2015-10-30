@@ -10,6 +10,7 @@ let kasumiParameters =  {
                             Types.maxN          =   195
                             Types.deltaRange    =   Types.Zero
                             Types.results       =   None
+                            Types.excludeOnes   =   true
                             }
 
 let kasumiCG = {
@@ -20,6 +21,7 @@ let kasumiCG = {
                             Types.maxN          =   195
                             Types.deltaRange    =   Types.Zero
                             Types.results       =   None
+                            Types.excludeOnes   =   true
                             }//200 = 20 mins Simulation
 
 let tinyScan = {
@@ -29,6 +31,7 @@ let tinyScan = {
                             Types.lambdaRange   =   [|1.<Types.cell/Types.week>;1.2<Types.cell/Types.week>;1.4<Types.cell/Types.week>;1.6<Types.cell/Types.week>|]
                             Types.maxN          =   195
                             Types.deltaRange    =   Types.Zero
+                            Types.excludeOnes   =   true
                             Types.results       =   None
                 }
 
