@@ -12,5 +12,5 @@ let arrayMap f c =
                                                     )
                     |> Array.Parallel.map (fun taskBundle -> Array.map f taskBundle )
     //Unbundle and return array
-    Array.init tasks (fun taskID -> pstruct.[(max (tasks/taskID) (threads-1) )].[dummy] )
+    Array.init tasks (fun taskID -> pstruct.[(min (tasks/taskID) (threads-1) )].[tasks%taskID] )
     
