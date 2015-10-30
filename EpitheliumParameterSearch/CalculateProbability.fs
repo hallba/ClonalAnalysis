@@ -7,8 +7,8 @@ let analyticalScan allParameters =
     let completeSet = Types.createParameterSet allParameters
     
     //Get numbers
-    let probS = Array.Parallel.map (fun input -> (AnalyticalCloneSizeDistribution.probabilityCloneSurvival input).Real) completeSet
-    let probN = Array.Parallel.map (fun input -> AnalyticalCloneSizeDistribution.probabilityCloneSizes input (List.init allParameters.maxN (fun i -> i+1)) allParameters.maxN) completeSet
+    let probS = Parallel.arrayMap (fun input -> (AnalyticalCloneSizeDistribution.probabilityCloneSurvival input).Real) completeSet
+    let probN = Parallel.arrayMap (fun input -> AnalyticalCloneSizeDistribution.probabilityCloneSizes input (List.init allParameters.maxN (fun i -> i+1)) allParameters.maxN) completeSet
 
     //Restructure results and put into a record
     Types.restructureParameterSet allParameters probS probN
@@ -16,7 +16,7 @@ let analyticalScan allParameters =
 let simulationScan allParameters number =
     //Simulations do not respect timepoints as input parameters
     let completeSet = Types.createParameterSet {allParameters with timePoints=[|0.<Types.week>|]}
-    let probabilityDistributions = Array.Parallel.map (fun input -> input 
+    let probabilityDistributions = Parallel.arrayMap (fun input -> input 
                                                                     |> SimulationCloneSizeDistribution.parameterSetToClone (SimulationCloneSizeDistribution.Specified(List.ofArray allParameters.timePoints))
                                                                     |> SimulationCloneSizeDistribution.cloneProbability number
                                                                     ) completeSet
