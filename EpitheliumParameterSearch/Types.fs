@@ -26,6 +26,7 @@ type parameterSearch = {    rhoRange:       float array
                             maxN:           int
                             deltaRange:     delta
                             results:        scanResults option
+                            excludeOnes:    bool
                             }
 
 type parameterSet = {   time: float<week>;

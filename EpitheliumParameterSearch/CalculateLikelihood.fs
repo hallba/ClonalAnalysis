@@ -23,6 +23,10 @@ type experimentalDataPoint = {  time: float<Types.week>
                                                             {this with cloneSize=cloneSize' }
                                                        else if n < (Array.length this.cloneSize ) then failwith "Cannot curtail a set of observations"
                                                        else this
+                                member this.logMultiNomial= logFactorial(Array.sum this.cloneSize) - (Array.fold (fun acc clone -> if clone=0 then acc else acc+ logFactorial(clone) ) 0. this.cloneSize )
+                                member this.excludeOnes = this.cloneSize.[0] <- 0
+                                                          this
+
 let testSystem = {  time=(11.<Types.week>/7.) ;
                     cloneSize = [| 37;13;11;6;1;4;3;1;0;1;0;0;1;1;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1|] }
 
@@ -87,6 +91,7 @@ let individualLogLikelihoodContribution (pIndividual: float [] []) (search:Types
     let timeMap = Map.ofArray (Array.mapi (fun i time -> (time,i)) search.timePoints)
     let correspondingP = List.map (fun dataPoint -> pIndividual.[timeMap.[dataPoint.time]] ) data //We could easily correct everything here...
     List.map2 (fun dataPoint probabilityDist -> logLikelihood probabilityDist dataPoint) data correspondingP 
+    //Where is the log of the multinomial   
     |> List.fold (fun acc p -> acc + p)  0.
 
 let getLikelihood data (search:Types.parameterSearch) =
@@ -96,5 +101,6 @@ let getLikelihood data (search:Types.parameterSearch) =
     //Normalise count probabilities assuming survival & extrapolate values for "zero" probabilities
     let P = Types.resultsMap2 normaliseTimePointsForSurvival results.cloneSizeMatrix results.survivalMatrix
             |> Types.resultsMap (fun pt -> Array.map (fun p -> extrapolateZeroProbabilities p) pt)
-    let data = List.map (fun (obs:experimentalDataPoint) -> obs.extend search.maxN) data
+    let data = if search.excludeOnes then List.map (fun (point:experimentalDataPoint) -> point.excludeOnes) data else data
+               |> List.map (fun (obs:experimentalDataPoint) -> obs.extend search.maxN) 
     Types.resultsMap (fun pIndividual -> individualLogLikelihoodContribution pIndividual search data ) P
