@@ -13,7 +13,7 @@ let logFactorial i =
 type experimentalDataPoint = {  time: float<Types.week>
                                 cloneSize: int []
                                 } with 
-                                member this.regularise =  ( logFactorial (Array.sum this.cloneSize) - Array.sum (Array.map (fun size -> if size = 0 then 0. else logFactorial size) this.cloneSize) )/log(10.)
+                                member this.regularise =  ( logFactorial (Array.sum this.cloneSize) - Array.sum (Array.map (fun size -> if size = 0 then 0. else logFactorial size) this.cloneSize) )
                                 member this.indices =   this.cloneSize
                                                         |> Array.mapi ( fun i o -> (i,o) )
                                                         |> Array.filter ( fun b -> snd(b) > 0 )
@@ -23,7 +23,6 @@ type experimentalDataPoint = {  time: float<Types.week>
                                                             {this with cloneSize=cloneSize' }
                                                        else if n < (Array.length this.cloneSize ) then failwith "Cannot curtail a set of observations"
                                                        else this
-                                member this.logMultiNomial= logFactorial(Array.sum this.cloneSize) - (Array.fold (fun acc clone -> if clone=0 then acc else acc+ logFactorial(clone) ) 0. this.cloneSize )
                                 member this.excludeOnes = this.cloneSize.[0] <- 0
                                                           this
 
