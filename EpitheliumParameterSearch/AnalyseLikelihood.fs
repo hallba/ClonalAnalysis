@@ -2,11 +2,20 @@
 
 type individualLikelihood = {
                             value       :   float
-                            rIndex      :   int option
-                            rhoIndex    :   int option
-                            lambdaIndex :   int option
-                            deltaIIndex :   int option
-                            }
+                            rIndex      :   int
+                            rhoIndex    :   int
+                            lambdaIndex :   int
+                            deltaIndex :   int
+                            } with
+                            member this.toParameterSet (ans:Types.parameterSearch) = {Types.testSystem with r=ans.rRange.[this.rIndex]
+                                                                                                            rho=ans.rhoRange.[this.rhoIndex]
+                                                                                                            lambda=ans.lambdaRange.[this.lambdaIndex]
+                                                                                                            delta=  match ans.deltaRange with
+                                                                                                                    | Types.Zero -> 0.<Types.probability>
+                                                                                                                    | Types.Range(ran) -> ran.[this.deltaIndex]
+                                                                                                            maxN=ans.maxN
+
+                                                                                                            }
 
 let maxIndex a =
     Array.mapi (fun i v -> (i,v) ) a
@@ -49,8 +58,9 @@ let compareListsOfIndexValuePairs iv =
     | first::rest -> snd(first)
     | [] -> failwith "EmptyResult"
 
-let globalMax likelihoodMatrix =
-    Array.map    ( fun delta -> Array.map ( fun lambda -> Array.map ( fun rho -> maxIndex rho ) lambda ) delta ) likelihoodMatrix 
-    |> Array.map ( fun delta -> Array.map ( fun lambda -> ( fun rho -> maxByIndex ( fun iv ->  compareListsOfIndexValuePairs iv ) rho) lambda  ) delta )
-    //|> Array.map ( fun delta -> Array.map ( fun lambda -> maxByIndex (fun a -> compareListsOfIndexValuePairs a) lambda) )
-    
+let globalMax L =
+    Types.resultsMapi (fun a b c d i -> {value=i;deltaIndex=a;lambdaIndex=b;rhoIndex=c;rIndex=d} ) L
+    |> Array.map (fun d -> Array.map (fun l -> Array.map (fun rho -> Array.maxBy (fun i -> i.value) rho) l)  d)
+    |> Array.map (fun d -> Array.map (fun l -> Array.maxBy (fun i -> i.value) l)  d)
+    |> Array.map (fun d -> Array.maxBy (fun i -> i.value) d)
+    |> Array.maxBy (fun i -> i.value)
