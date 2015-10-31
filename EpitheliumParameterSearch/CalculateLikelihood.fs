@@ -44,15 +44,22 @@ let extrapolateZeroProbabilities p =
     //The value must never become 0. as a log is ultimately applied
     //To avoid this p hits a minimum it becomes the smallest possible double- 4.940656458e-324
     let i0 = ( Array.findIndex (fun i -> i=0.) p ) - 1
+    //printf "i0 = %A\n" i0
     //printf "%A %A %A %A -> i=%A\n" a b c d i0
     let lastNonZero = if i0 > 0 then p.[i0-1] else 4.940656458e-324
-    //Need to add testing code to ensure that ratio never is >1, to prevent P>1 occuring eventually
+    //To protect against noisy simulation data the maximum ratio is 0.95, to ensure a slow decline
+    //This has been arbitrarily chosen as the worst behaving datasets are the ones with an almost 
+    //flat line
     let ratio =
         if i0<=0 then 
             //If we only have one or fewer values, we can't extrapolate so just set it to 0
+            //printf "Everything is zero\n"
             (fun i -> 4.940656458e-324)
         else if i0 <= 7 then 
-            (fun i -> pown (p.[i0] / p.[i0-1]) i)
+            //printf "Ratio based on %A/%A\n" p.[i0] p.[i0-1]
+            let r = (p.[i0] / p.[i0-1])
+                    |> fun i -> if i > 0.95 then 0.95 else i
+            (fun i -> pown r i)
         else
             //try get an average ratio
             let i1 = int(round(float(i0)*0.65))
@@ -61,10 +68,15 @@ let extrapolateZeroProbabilities p =
             let r = Array.map2 (fun a b -> a/b) ( Array.init (i2-i1) (fun i -> p.[i1+i]) ) ( Array.init (i2-i1) (fun i -> p.[i1+i-1]) )
                         |> Array.fold (fun acc diff -> acc+diff ) 0.
                         |> (fun sum -> sum/float(i2-i1))  
+            //printf "Series ratio %A\n" r
+            let r = (p.[i0] / p.[i0-1])
+                    |> fun i -> if i > 0.95 then 0.95 else i
             (fun i -> pown r i)
 
     Array.mapi (fun i prob -> if i < i0 then prob else 
-                                                        let a = lastNonZero*(ratio (1+i-i0))
+                                                        let currentRatio= (ratio (1+i-i0))
+                                                        //printf "Ratio -> %A\n" currentRatio
+                                                        let a = lastNonZero*currentRatio
                                                         if a > 0. then a else 4.940656458e-324
                                                         ) p 
 
