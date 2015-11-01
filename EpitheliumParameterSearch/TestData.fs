@@ -1,4 +1,4 @@
-﻿module Test
+﻿module TestData
 
 open CalculateLikelihood
 
