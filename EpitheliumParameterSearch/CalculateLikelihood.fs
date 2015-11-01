@@ -37,48 +37,50 @@ let normaliseTimePointsForSurvival cloneSizes survival =
     Array.map2 (fun nt st -> Array.map (fun nti -> nti/st) nt) cloneSizes survival
 
 let extrapolateZeroProbabilities p =
-    //This is to replace the function from the previous implementation (see estimateZeroP)
-    //This accepts an array of floats, finds the first zero and replaces all future values on 
-    //the basis of an extrapolation from *at least* the last two good points
+    if not (Array.exists (fun i -> i=0.) p) then p else
+        //This is to replace the function from the previous implementation (see estimateZeroP)
+        //This accepts an array of floats, finds the first zero and replaces all future values on 
+        //the basis of an extrapolation from *at least* the last two good points
 
-    //The value must never become 0. as a log is ultimately applied
-    //To avoid this p hits a minimum it becomes the smallest possible double- 4.940656458e-324
-    let i0 = ( Array.findIndex (fun i -> i=0.) p ) - 1
-    //printf "i0 = %A\n" i0
-    //printf "%A %A %A %A -> i=%A\n" a b c d i0
-    let lastNonZero = if i0 > 0 then p.[i0-1] else 4.940656458e-324
-    //To protect against noisy simulation data the maximum ratio is 0.95, to ensure a slow decline
-    //This has been arbitrarily chosen as the worst behaving datasets are the ones with an almost 
-    //flat line
-    let ratio =
-        if i0<=0 then 
-            //If we only have one or fewer values, we can't extrapolate so just set it to 0
-            //printf "Everything is zero\n"
-            (fun i -> 4.940656458e-324)
-        else if i0 <= 7 then 
-            //printf "Ratio based on %A/%A\n" p.[i0] p.[i0-1]
-            let r = (p.[i0] / p.[i0-1])
-                    |> fun i -> if i > 0.95 then 0.95 else i
-            (fun i -> pown r i)
-        else
-            //try get an average ratio
-            let i1 = int(round(float(i0)*0.65))
-            let i2 = int(round(float(i0)*0.75))
-            //printf "i1=%A i2=%A\n" i1 i2
-            let r = Array.map2 (fun a b -> a/b) ( Array.init (i2-i1) (fun i -> p.[i1+i]) ) ( Array.init (i2-i1) (fun i -> p.[i1+i-1]) )
-                        |> Array.fold (fun acc diff -> acc+diff ) 0.
-                        |> (fun sum -> sum/float(i2-i1))  
-            //printf "Series ratio %A\n" r
-            let r = (p.[i0] / p.[i0-1])
-                    |> fun i -> if i > 0.95 then 0.95 else i
-            (fun i -> pown r i)
+        //The value must never become 0. as a log is ultimately applied
+        //To avoid this p hits a minimum it becomes the smallest possible double- 4.940656458e-324
+        let i0 = ( Array.findIndex (fun i -> i=0.) p ) - 1
 
-    Array.mapi (fun i prob -> if i < i0 then prob else 
-                                                        let currentRatio= (ratio (1+i-i0))
-                                                        //printf "Ratio -> %A\n" currentRatio
-                                                        let a = lastNonZero*currentRatio
-                                                        if a > 0. then a else 4.940656458e-324
-                                                        ) p 
+        //printf "i0 = %A\n" i0
+        //printf "%A %A %A %A -> i=%A\n" a b c d i0
+        let lastNonZero = if i0 > 0 then p.[i0-1] else 4.940656458e-324
+        //To protect against noisy simulation data the maximum ratio is 0.95, to ensure a slow decline
+        //This has been arbitrarily chosen as the worst behaving datasets are the ones with an almost 
+        //flat line
+        let ratio =
+            if i0<=0 then 
+                //If we only have one or fewer values, we can't extrapolate so just set it to 0
+                //printf "Everything is zero\n"
+                (fun i -> 4.940656458e-324)
+            else if i0 <= 7 then 
+                //printf "Ratio based on %A/%A\n" p.[i0] p.[i0-1]
+                let r = (p.[i0] / p.[i0-1])
+                        |> fun i -> if i > 0.95 then 0.95 else i
+                (fun i -> pown r i)
+            else
+                //try get an average ratio
+                let i1 = int(round(float(i0)*0.65))
+                let i2 = int(round(float(i0)*0.75))
+                //printf "i1=%A i2=%A\n" i1 i2
+                let r = Array.map2 (fun a b -> a/b) ( Array.init (i2-i1) (fun i -> p.[i1+i]) ) ( Array.init (i2-i1) (fun i -> p.[i1+i-1]) )
+                            |> Array.fold (fun acc diff -> acc+diff ) 0.
+                            |> (fun sum -> sum/float(i2-i1))  
+                //printf "Series ratio %A\n" r
+                let r = (p.[i0] / p.[i0-1])
+                        |> fun i -> if i > 0.95 then 0.95 else i
+                (fun i -> pown r i)
+
+        Array.mapi (fun i prob -> if i < i0 then prob else 
+                                                            let currentRatio= (ratio (1+i-i0))
+                                                            //printf "Ratio -> %A\n" currentRatio
+                                                            let a = lastNonZero*currentRatio
+                                                            if a > 0. then a else 4.940656458e-324
+                                                            ) p 
 
 let individualLogLikelihoodContribution (pIndividual: float [] []) (search:Types.parameterSearch) (data:experimentalDataPoint list) =
     let timeMap = Map.ofArray (Array.mapi (fun i time -> (time,i)) search.timePoints)
