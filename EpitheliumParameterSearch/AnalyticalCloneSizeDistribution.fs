@@ -68,6 +68,7 @@ let probabilityCloneSizes (inputParameters : Types.parameterSet) nRange maxN =
         //Corrected version. Note that the function will need to be inverted for comparison with equivalent matlab code
         let gamma = inputParameters.rho/(1.-inputParameters.rho)
         let T = inputParameters.lambda * inputParameters.time
+        //Some bug in k calculation
         let k = List.init N (fun item -> exp(complex 0. (float(item)/float(N)*System.Math.PI*2.)) )
         let gVals = List.map (fun zMember -> if zMember = complex 1. 0. then complex 1. 0. else F zMember zMember (T*1.<Types.cell^-1>) (inputParameters.r*1.<Types.probability^-1>) gamma) k 
         let p = List.map (fun n -> List.mapi (fun index i -> i * exp(complex 0. (-2.*System.Math.PI*float(n)*float(index)/float(N)) ) ) gVals ) nRange 
