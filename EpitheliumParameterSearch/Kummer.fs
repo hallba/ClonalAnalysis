@@ -52,7 +52,7 @@ let M (a:complex) (b:complex) (z:complex) =
         let denominator' = if n = 0 then complex 1. 0. else denominator * (complex (float(n)) 0.)*(b + (complex (float(n-1)) 0.) )
         let delta = numerator' / denominator'
         let result' = result + delta
-        if (delta/result).Magnitude < accuracy then ignore (if debug then printf "Taylor expansion in %A steps\na=%A b=%A c=%A result=%A\nhypergeom(%A+%Ai,%A+%Ai,%A+%Ai)\n" n a b z result' a.r a.i b.r b.i z.r z.i); result' else 
+        if (delta/result).Magnitude < accuracy then ignore (if debug then printf "Taylor expansion in %A steps\na=%A b=%A c=%A result=%A\nhypergeom(%A+%Ai,%A+%Ai,%A+%Ai)\n######\n" n a b z result' a.r a.i b.r b.i z.r z.i); result' else 
             if n+1 < 500 then taylorExpansion accuracy a b z (n+1) numerator' denominator' result' else printf "a %A b %A c %A r %A\n" a b z result' ; failwith("Kummer M function failed to converge (Taylor)")
     let rec singleFraction accuracy a b z n alpha beta gamma result result' =
         //Expressing the Taylor expansion (above) as a single fraction copes better when b < 1
@@ -98,7 +98,7 @@ let M (a:complex) (b:complex) (z:complex) =
 
 let U a (b:complex) z = 
     //undefined for integer b, so we make small perturbations to integer
-    let b = if b.r%1. = 0. then b + complex 0.00000001 0. else b
+    let b = if b.r%1. = 0. then b + complex 0.0001 0. else b
     //(M a b z)* (complex (gamma(1.-b)/gamma(1.+a-b)) 0. ) + (M (1.+a-b) (2.-b) z) * (complex (gamma(b-1.)/gamma(a)) 0.) * z**(1.-b)
     //(M a b z)* ( cGamma ((complex 1. 0.)-b)/cGamma ((complex 1. 0.)+a-b) ) + (M ((complex 1. 0.)+a-b) ((complex 2. 0.)-b) z) * ( cGamma (b-(complex 1. 0.))/ cGamma a ) * z**((complex 1. 0.)-b)
     (M a b z)* exp( Gamma.logLanczosGodfrey ((complex 1. 0.)-b) - Gamma.logLanczosGodfrey ((complex 1. 0.)+a-b) ) + (M ((complex 1. 0.)+a-b) ((complex 2. 0.)-b) z) * exp( Gamma.logLanczosGodfrey (b-(complex 1. 0.)) - Gamma.logLanczosGodfrey a ) * z**((complex 1. 0.)-b)
