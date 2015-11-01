@@ -62,8 +62,12 @@ let M (a:complex) (b:complex) (z:complex) =
         let gamma' = if n = 0 then complex 1. 0. else gamma * (complex (float(n)) 0.) * (b + (complex (float(n) - 1.) 0.))
 
         let result'' = (alpha' + beta')/gamma'
-
-        if (((result'' - result')/result').Magnitude < accuracy) && (((result' - result)/result).Magnitude < accuracy) then ignore (if debug then printf "Single fraction in %A steps\na=%A b=%A c=%A result=%A\nhypergeom(%A+%Ai,%A+%Ai,%A+%Ai)\n" n a b z result'' a.r a.i b.r b.i z.r z.i); result'' else
+        //printf "alpha %A beta %A gamma %A result %A\nalpha' %A beta' %A gamma' %A result'%A\n" alpha beta gamma result alpha' beta' gamma' result'
+        
+        //result can diverge for complex z so fallback to taylor
+        if System.Double.IsNaN(result''.r) || System.Double.IsNaN(result''.i) 
+            then taylorExpansion accuracy a b z 0 (complex 1. 0.) (complex 1. 0.) (complex 0. 0.)
+        else if (((result'' - result')/result').Magnitude < accuracy) && (((result' - result)/result).Magnitude < accuracy) then ignore (if debug then printf "Single fraction in %A steps\na=%A b=%A c=%A result=%A\nhypergeom(%A+%Ai,%A+%Ai,%A+%Ai)\n" n a b z result'' a.r a.i b.r b.i z.r z.i); result'' else
             if n+1 < 500 then singleFraction accuracy a b z (n+1) alpha' beta' gamma' result' result'' else  printf "a %A b %A c %A r %A\n" a b z result'; failwith("Kummer M function failed to converge (Fraction)")
     let rec buchholz accuracy a b z n d d' d'' result =
         //Initialise system
