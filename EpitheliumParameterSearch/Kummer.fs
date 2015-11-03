@@ -98,9 +98,34 @@ let M (a:complex) (b:complex) (z:complex) =
 
 let U a (b:complex) z = 
     //undefined for integer b, so we make small perturbations to integer
-    let b = if b.r%1. = 0. then b + complex 0.0001 0. else b
+    let b = if b.r%1. = 0. then b + complex 0.000000000001 0. else b
     //(M a b z)* (complex (gamma(1.-b)/gamma(1.+a-b)) 0. ) + (M (1.+a-b) (2.-b) z) * (complex (gamma(b-1.)/gamma(a)) 0.) * z**(1.-b)
     //(M a b z)* ( cGamma ((complex 1. 0.)-b)/cGamma ((complex 1. 0.)+a-b) ) + (M ((complex 1. 0.)+a-b) ((complex 2. 0.)-b) z) * ( cGamma (b-(complex 1. 0.))/ cGamma a ) * z**((complex 1. 0.)-b)
-    (M a b z)* exp( Gamma.logLanczosGodfrey ((complex 1. 0.)-b) - Gamma.logLanczosGodfrey ((complex 1. 0.)+a-b) ) + (M ((complex 1. 0.)+a-b) ((complex 2. 0.)-b) z) * exp( Gamma.logLanczosGodfrey (b-(complex 1. 0.)) - Gamma.logLanczosGodfrey a ) * z**((complex 1. 0.)-b)
     
+    let firstTermGammaRatio =   exp( Gamma.logLanczosGodfrey ((complex 1. 0.)-b) - Gamma.logLanczosGodfrey ((complex 1. 0.)+a-b) )
+                                |> fun i -> if System.Double.IsNaN(i.r) then (Gamma.lanczosGodfrey ((complex 1. 0.)-b))/(Gamma.lanczosGodfrey ((complex 1. 0.)+a-b)) else i
+    let secondTermGammaRation = exp( Gamma.logLanczosGodfrey (b-(complex 1. 0.)) - Gamma.logLanczosGodfrey a )
+                                |> fun i -> if System.Double.IsNaN(i.r) then (Gamma.lanczosGodfrey ((complex 1. 0.)-b))/(Gamma.lanczosGodfrey ((complex 1. 0.)+a-b)) else i
+    let result = (M a b z)* firstTermGammaRatio + (M ((complex 1. 0.)+a-b) ((complex 2. 0.)-b) z) * z**((complex 1. 0.)-b)
+    if debug then printf "U(%A,%A,%A)\nResult=%A\n" a b z result
     //MathNet.Numerics.SpecialFunctions.Gamma(-2.*b) * (M a b z) / MathNet.Numerics.SpecialFunctions.Gamma(0.5 - a - b) + MathNet.Numerics.SpecialFunctions.Gamma(2.*b) * (M a -b z) / MathNet.Numerics.SpecialFunctions.Gamma(0.5 - a + b)
+    result 
+
+let U' a (b:complex) z =
+    let rec core a (b:complex) z attempt =
+        if attempt > 10 then failwith "stuck in a loop"
+        printf "b=%A\n" b
+        if b.r%1. <> 0. || b.r > 1. then
+                let result = (M a b z)* exp( Gamma.logLanczosGodfrey ((complex 1. 0.)-b) - Gamma.logLanczosGodfrey ((complex 1. 0.)+a-b) ) + (M ((complex 1. 0.)+a-b) ((complex 2. 0.)-b) z) * exp( Gamma.logLanczosGodfrey (b-(complex 1. 0.)) - Gamma.logLanczosGodfrey a ) * z**((complex 1. 0.)-b)
+                if debug then printf "U(%A,%A,%A)\nResult=%A\n" a b z result
+                result 
+        else
+            let c1 = complex 1. 0.
+            let c2 = complex 2. 0.
+            let a' = a+c1-b
+            let b' = c2-b
+            printf "b'=%A\n" b'
+            let result = z**(c1-b) * (core a' b' z (attempt+1) )
+            if debug then printf "U(%A,%A,%A)\nResult=%A\n" a b z result
+            result
+    core a b z 0
