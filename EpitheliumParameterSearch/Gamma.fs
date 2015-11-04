@@ -165,5 +165,12 @@ let diGammaInt x =
     if x < 0 then infinity else (core eulerConstant x)
 
 let diGammaFloat x =
-    if x%1. = 0. then diGammaInt (int(x)) else 
-        0.
+    if x%1. = 0. then diGammaInt (int(x)) 
+    else if (x+0.5)%1. = 0. then 
+        let rec core value acc =
+            let n' = -1
+            if n'=0 then acc else core n' (acc+1./(2.*float(n')-1.) )
+        let n = int (x - 0.5)
+        core n 0.
+        |> fun i -> i + 2.*(i - log(2.)) - eulerConstant
+    else failwith "incomplete diGamma for floats"
