@@ -2,7 +2,7 @@
 
 open MathNet.Numerics
 
-let debug = false
+let debug = true
 
 //Todo: implement a gamma function which can accept complex arguements
 //Note: 169 is the max input to this function before the value becomes infinite
@@ -138,6 +138,7 @@ let logLanczosGodfrey (z:complex) =
                  |> List.mapi (fun i c -> if i = 0 then c else c/(z'+(complex (float(i)) 0. ) ) )
                  |> List.fold (fun acc item -> acc + item ) (complex 0. 0.)
                  |> fun f ->  (log f) - z' - c0_5 + (z'+c0_5)*log(z'+g+c0_5) 
+    if debug then printf "Gamma %A = %A\n" z result
     result
     
 
