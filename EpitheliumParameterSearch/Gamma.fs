@@ -4,6 +4,9 @@ open MathNet.Numerics
 
 let debug = true
 
+let eulerConstant = 0.5772156649015329
+let eulerComplex  = complex eulerConstant 0.
+
 //Todo: implement a gamma function which can accept complex arguements
 //Note: 169 is the max input to this function before the value becomes infinite
 let realGamma = MathNet.Numerics.SpecialFunctions.Gamma
@@ -154,3 +157,13 @@ let rec complexGamma algorithm (z:System.Numerics.Complex) =
                 let result = algorithm z
                 if debug then printf "Complex gamma: z=%A result=%A\ncgama(%A,%A,1)\n" z result z.r z.i
                 result
+ 
+let diGammaInt x = 
+    let rec core acc n =
+        let n' = n - 1
+        if n' = 0 then acc else core (acc+1./float(n')) n'
+    if x < 0 then infinity else (core eulerConstant x)
+
+let diGammaFloat x =
+    if x%1. = 0. then diGammaInt (int(x)) else 
+        0.
