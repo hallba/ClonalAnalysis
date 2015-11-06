@@ -202,8 +202,8 @@ let diGammaComplex (z:complex) =
         if z.i = 0. && z.r % 1. <> 0. then (complex (diGammaFloat z.r) 0.)  //x is actually real and a float
         else if z.i = 0. then (complex (diGammaInt (int(z.r))) 0.)          //x is actually real and an int
         else    if z.r < 0. then (core ((complex 1. 0.)-z) (acc - complexPi/tan(complexPi*z)) ) else //Reflection
-                    if true then //z.r > 8. then
-                        //Unclear how to test this- based on Abramowitz & Stegun p259 eqn 6.3.18. No tables with big z.real
+                    if z.r > 8. then
+                        //Testing based on Abramowitz & Stegun p259 eqn 6.3.18. Note tables with big z.real but because of recurrence...
                         let dgamInit =      log(z) - (complex 1. 0.)/((complex 2. 0.)*z)
                         let dgam' =         List.init 10 (fun k ->  (complex dg_coeff.[k] 0.)/(z**(2.+2.*float(k))) )
                                             |> List.fold (fun acc k -> acc + k ) dgamInit
@@ -211,4 +211,4 @@ let diGammaComplex (z:complex) =
                     else
                         //Use the recurrence formula psi(z) = psi(z+1) - 1/z
                         core ((complex 1. 0.)+z) (acc-((complex 1. 0.)/z))
-    core z (complex 0. 0.)               
+    core z (complex 0. 0.)             
