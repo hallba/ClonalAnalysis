@@ -197,7 +197,17 @@ let rec diGammaFloat x =
             List.init 10 (fun i -> ( i, (pown overx2 (i+1)) ) )
             |> List.fold (fun acc (k,ov) -> acc + dg_coeff.[k]*ov ) dgam'
 
-let diGammaComplex (x:complex) =
-    if x.i = 0. && x.r % 1. <> 0. then (complex (diGammaFloat x.r) 0.)  //x is actually real and a float
-    else if x.i = 0. then (complex (diGammaInt (int(x.r))) 0.)          //x is actually real and an int
-    else failwith "incomplete"
+let diGammaComplex (z:complex) =
+    if z.i = 0. && z.r % 1. <> 0. then (complex (diGammaFloat z.r) 0.)  //x is actually real and a float
+    else if z.i = 0. then (complex (diGammaInt (int(z.r))) 0.)          //x is actually real and an int
+    else    let (zp,zra) = if z.r < 0. then (-z,-z.r)  else (z,z.r)
+            let n = 0
+            let (zm,n) = if zra<8. then ((zp+(complex (float(8-int(z.r))) 0.)),(8-int(z.r))) else (zp,n)
+            let overz = (complex 1. 0.) / zm
+            let overz2 = overz*overz
+            let dgam =          log(zm) - overz/(complex 2. 0.)
+            let dgam' =         List.init 10 (fun k -> ( k, (overz2**2.) ) )
+                                |> List.fold (fun acc (k,ok) -> acc + (complex dg_coeff.[k] 0.)*ok) dgam
+            let dgam''=         List.init 10 (fun k -> zp + (complex (float(k)) 0.)*(complex 1. 0.) )
+                                |> List.fold (fun acc k -> acc - (complex 1. 0.)/k ) dgam'
+            dgam''
