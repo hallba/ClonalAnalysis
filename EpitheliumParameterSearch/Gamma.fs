@@ -6,6 +6,8 @@ let debug = true
 
 let eulerConstant = 0.5772156649015329
 let eulerComplex  = complex eulerConstant 0.
+let complexPi = complex System.Math.PI 0.
+
 
 //Todo: implement a gamma function which can accept complex arguements
 //Note: 169 is the max input to this function before the value becomes infinite
@@ -31,8 +33,6 @@ let logGamma (z:complex) =
 //Note- Stirling is poor for small z
 let stirling z =
     exp (logGamma z)
-
-let complexPi = complex System.Math.PI 0.
 
 let reflection nextFunction z =
     let oneMinusZ = complex 1. 0. - z
@@ -198,16 +198,17 @@ let rec diGammaFloat x =
             |> List.fold (fun acc (k,ov) -> acc + dg_coeff.[k]*ov ) dgam'
 
 let diGammaComplex (z:complex) =
-    if z.i = 0. && z.r % 1. <> 0. then (complex (diGammaFloat z.r) 0.)  //x is actually real and a float
-    else if z.i = 0. then (complex (diGammaInt (int(z.r))) 0.)          //x is actually real and an int
-    else    let (zp,zra) = if z.r < 0. then (-z,-z.r)  else (z,z.r)
-            let n = 0
-            let (zm,n) = if zra<8. then ((zp+(complex (float(8-int(z.r))) 0.)),(8-int(z.r))) else (zp,n)
-            let overz = (complex 1. 0.) / zm
-            let overz2 = overz*overz
-            let dgam =          log(zm) - overz/(complex 2. 0.)
-            let dgam' =         List.init 10 (fun k -> ( k, (overz2**2.) ) )
-                                |> List.fold (fun acc (k,ok) -> acc + (complex dg_coeff.[k] 0.)*ok) dgam
-            let dgam''=         List.init 10 (fun k -> zp + (complex (float(k)) 0.)*(complex 1. 0.) )
-                                |> List.fold (fun acc k -> acc - (complex 1. 0.)/k ) dgam'
-            dgam''
+    let rec core (z:complex) acc = 
+        if z.i = 0. && z.r % 1. <> 0. then (complex (diGammaFloat z.r) 0.)  //x is actually real and a float
+        else if z.i = 0. then (complex (diGammaInt (int(z.r))) 0.)          //x is actually real and an int
+        else    if z.r < 0. then (core ((complex 1. 0.)-z) (acc - complexPi/tan(complexPi*z)) ) else //Reflection
+                    if true then //z.r > 8. then
+                        //Unclear how to test this- based on Abramowitz & Stegun p259 eqn 6.3.18. No tables with big z.real
+                        let dgamInit =      log(z) - (complex 1. 0.)/((complex 2. 0.)*z)
+                        let dgam' =         List.init 10 (fun k ->  (complex dg_coeff.[k] 0.)/(z**(2.+2.*float(k))) )
+                                            |> List.fold (fun acc k -> acc + k ) dgamInit
+                        dgam' + acc
+                    else
+                        //Use the recurrence formula psi(z) = psi(z+1) - 1/z
+                        core ((complex 1. 0.)+z) (acc-((complex 1. 0.)/z))
+    core z (complex 0. 0.)               
