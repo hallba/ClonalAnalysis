@@ -162,7 +162,7 @@ let diGammaInt x =
     let rec core acc n =
         let n' = n - 1
         if n' = 0 then acc else core (acc+1./float(n')) n'
-    if x < 0 then infinity else (core (0.-eulerConstant) x)
+    if x <= 0 then infinity else (core (0.-eulerConstant) x)
 
 //Coefficients for C.Lanczos expansion of DiGamma function dg_coef[k] = - (2k+1) * lg_coef[k]
 let dg_coeff = [|   -0.83333333333333333e-1; 
@@ -178,26 +178,24 @@ let dg_coeff = [|   -0.83333333333333333e-1;
                     |]
 //-1/12, 3/360,-5/1260, 7/1680,-9/1188, 11*691/360360,-13/156, 15*3617/122400, ? , ?
 
-let diGammaFloat x =
-    let xa = abs(x)
-    if x%1. = 0. then diGammaInt (int(x)) 
-    else if (xa+0.5)%1. = 0. then 
-        let rec core value acc =
-            let n' = -1
-            if n'=0 then acc else core n' (acc+1./(2.*float(n')-1.) )
-        let n = int (xa - 0.5)
-        core n 0.
-        |> fun i -> i + 2.*(i - log(2.)) - eulerConstant
-    else 
-        let (dgam, xa) =    if xa >= 10. then (0.,xa) 
-                            else List.init (10 - int(xa)) (fun i -> i)
-                                 |> List.fold (fun acc k -> acc - 1./(float(k)+xa) ) 0.
-                                 |> fun dgam -> (dgam, (xa+ 10. - floor(xa)) )
-        let dgam' = dgam + log(xa) - 0.5/xa
-        let overx2 = 1./(xa*xa)
-        List.init 10 (fun i -> ( i, (pown overx2 (i+1)) ) )
-        |> List.fold (fun acc (k,ov) -> acc + dg_coeff.[k]*ov ) dgam'
-        |> fun result -> if x<0. then result - System.Math.PI*tan(x*System.Math.PI) + 1./x else result //reflection formula: for x < 0, use Digamma(1-x) = Digamma(x) + pi/tan(pi*x);
+let rec diGammaFloat x =
+    if x < 0. then (diGammaFloat (1.-x) - System.Math.PI/tan(System.Math.PI*x)) else
+        let xa = abs(x)
+        if x%1. = 0. then diGammaInt (int(x)) 
+        else if (xa+0.5)%1. = 0. && x > 0.5 then 
+            let n = int (xa - 0.5) 
+            List.init n (fun k -> float(k+k+1))
+            |> List.fold (fun acc n -> acc + 1./n ) 0.
+            |> fun dgam -> 2.*dgam - 2.*log(2.) - eulerConstant
+        else 
+            let (dgam, xa) =    if xa >= 10. then (0.,xa) 
+                                else List.init (10 - int(xa)) (fun i -> i)
+                                     |> List.fold (fun acc k -> acc - 1./(float(k)+xa) ) 0.
+                                     |> fun dgam -> (dgam, (xa+ 10. - floor(xa)) )
+            let dgam' = dgam + log(xa) - 0.5/xa
+            let overx2 = 1./(xa*xa)
+            List.init 10 (fun i -> ( i, (pown overx2 (i+1)) ) )
+            |> List.fold (fun acc (k,ov) -> acc + dg_coeff.[k]*ov ) dgam'
 
 let diGammaComplex (x:complex) =
     if x.i = 0. && x.r % 1. <> 0. then (complex (diGammaFloat x.r) 0.)  //x is actually real and a float
