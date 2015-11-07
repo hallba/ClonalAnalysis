@@ -111,21 +111,280 @@ let U a (b:complex) z =
     //MathNet.Numerics.SpecialFunctions.Gamma(-2.*b) * (M a b z) / MathNet.Numerics.SpecialFunctions.Gamma(0.5 - a - b) + MathNet.Numerics.SpecialFunctions.Gamma(2.*b) * (M a -b z) / MathNet.Numerics.SpecialFunctions.Gamma(0.5 - a + b)
     result 
 
-let U' a (b:complex) z =
-    let rec core a (b:complex) z attempt =
-        if attempt > 10 then failwith "stuck in a loop"
-        printf "b=%A\n" b
-        if b.r%1. <> 0. || b.r > 1. then
-                let result = (M a b z)* exp( Gamma.logLanczosGodfrey ((complex 1. 0.)-b) - Gamma.logLanczosGodfrey ((complex 1. 0.)+a-b) ) + (M ((complex 1. 0.)+a-b) ((complex 2. 0.)-b) z) * exp( Gamma.logLanczosGodfrey (b-(complex 1. 0.)) - Gamma.logLanczosGodfrey a ) * z**((complex 1. 0.)-b)
-                if debug then printf "U(%A,%A,%A)\nResult=%A\n" a b z result
-                result 
-        else
-            let c1 = complex 1. 0.
-            let c2 = complex 2. 0.
-            let a' = a+c1-b
-            let b' = c2-b
-            printf "b'=%A\n" b'
-            let result = z**(c1-b) * (core a' b' z (attempt+1) )
-            if debug then printf "U(%A,%A,%A)\nResult=%A\n" a b z result
-            result
-    core a b z 0
+//let U' a (b:complex) z =
+//    let rec core a (b:complex) z attempt =
+//        if attempt > 10 then failwith "stuck in a loop"
+//        printf "b=%A\n" b
+//        if b.r%1. <> 0. || b.r > 1. then
+//                let result = (M a b z)* exp( Gamma.logLanczosGodfrey ((complex 1. 0.)-b) - Gamma.logLanczosGodfrey ((complex 1. 0.)+a-b) ) + (M ((complex 1. 0.)+a-b) ((complex 2. 0.)-b) z) * exp( Gamma.logLanczosGodfrey (b-(complex 1. 0.)) - Gamma.logLanczosGodfrey a ) * z**((complex 1. 0.)-b)
+//                if debug then printf "U(%A,%A,%A)\nResult=%A\n" a b z result
+//                result 
+//        else
+//            let c1 = complex 1. 0.
+//            let c2 = complex 2. 0.
+//            let a' = a+c1-b
+//            let b' = c2-b
+//            printf "b'=%A\n" b'
+//            let result = z**(c1-b) * (core a' b' z (attempt+1) )
+//            if debug then printf "U(%A,%A,%A)\nResult=%A\n" a b z result
+//            result
+//    core a b z 0
+
+let cPown (c:complex) n = 
+    let rec core c n acc =
+        let acc' = c * acc
+        if n > 0 then core c (n-1) acc' else acc
+    if n=0 then (complex 1. 0.) else core c n (complex 1. 0.)
+
+let UInt a (b:complex) (x:complex) =
+    let accuracy = 1e-15
+    let n = int(abs(b.r-1.))
+    let cn = complex (float(n)) 0.
+    let c1 = complex 1. 0.
+    let c0 = complex 0. 0.
+    let rn_1 = complex (factorial (n-1)) 0.
+    let rn = rn_1 * (complex (float(n)) 0.)
+    let ps = Gamma.diGammaComplex a
+    let ga = Gamma.lanczosGodfrey a
+    let (a0,a1,a2,ga1,ua,ub) = if b.r > 0. then                                                 //NB- this is some kind of reflextion
+                                               let a0=a
+                                               let a1= a- (complex (float(n)) 0.)
+                                               let a2 = a1
+                                               let ga1 = Gamma.lanczosGodfrey a1
+                                               let ua = (complex -1. 0.)**(float(n)-1.)/(rn*ga1)
+                                               //UA=(-1)**(N-1)/(RN*GA1)
+                                               let ub = rn_1/ga*(x**(float(-n)))
+                                               //UB=RN1/GA*X**(-N)
+                                               (a0,a1,a2,ga1,ua,ub)
+                                            else
+                                                //           A0=A+N
+                                                let a0 = a + cn
+                                                //           A1=A0
+                                                let a1 = a0
+                                                //           A2=A
+                                                let a2 = a
+                                                //           CALL GAMMA2(A1,GA1)
+                                                let ga1 = Gamma.lanczosGodfrey a1
+                                                //           UA=(-1)**(N-1)/(RN*GA)*X**N
+                                                let ua = (complex -1. 0.)**(float(n-1)) /(rn*ga) *(x**float(n))
+                                                //           UB=RN1/GA1
+                                                let ub = rn_1/ga1
+                                                (a0,a1,a2,ga1,ua,ub)
+    let hMax,hMin,hM1,h0 =  List.init 150 (fun k -> let ck = complex (float(k)) 0.
+                                                    cPown ((a0+ck-c1)*x/((ck+cn)*ck)) (k+1)        )
+                            |> List.fold (fun ((hMax:complex),(hMin:complex),hM1,h0) r ->   let hM1' = hM1 + r
+                                                                                            let hu1 = complex (abs(hM1'.r)) hM1'.i
+                                                                                            let hMax',hMin' =   match (hu1.r>hMax.r,hu1.r<hMin.r) with
+                                                                                                                | (false,false) -> hMax, hMin
+                                                                                                                | (true,false)  -> hu1, hMin
+                                                                                                                | (false,true)  -> hMax, hu1
+                                                                                                                | (true,true)   -> hu1, hu1
+                                                                                            //Some sort of break in the loop missing here based on accuracy
+                                                                                            let h0' = hM1'
+                                                                                            (hMax',hMin',hM1',h0')
+                                                                                        ) (c0,(complex 1.e300 0.),c1,c0)
+
+                                                
+//        HM1=1.0D0
+//        R=1.0D0
+//        HMAX=0.0D0
+//        HMIN=1.0D+300
+//        H0=0D0
+//        DO 15 K=1,150
+//           R=R*(A0+K-1.0D0)*X/((N+K)*K)
+//           HM1=HM1+R
+//           HU1=DABS(HM1)
+//           IF (HU1.GT.HMAX) HMAX=HU1
+//           IF (HU1.LT.HMIN) HMIN=HU1
+//           IF (DABS(HM1-H0).LT.DABS(HM1)*1.0D-15) GO TO 20
+//15         H0=HM1
+    let da1 = log10(hMax)
+    let da2 = if hMin.r<>0. then log10(hMin) else c0
+    let id = 15. - abs(da1.r-da2.r)
+    let hM1 = hM1*log(x)
+    let s0 = List.init (n-1) (fun m ->  let cm = complex (float(m+1)) 0.
+                                        if b.r >= 0. then -c1/cm else (c1-a)/(cm*(a+cm-c1) ) )
+             |> List.fold (fun acc ms -> acc + ms) c0
+//20      DA1=LOG10(HMAX)
+//        DA2=0.0D0
+//        IF (HMIN.NE.0.0) DA2=LOG10(HMIN)
+//        ID=15-ABS(DA1-DA2)
+//        HM1=HM1*DLOG(X)
+//        S0=0.0D0
+//        DO 25 M=1,N
+//           IF (B.GE.0.0) S0=S0-1.0D0/M
+//25         IF (B.LT.0.0) S0=S0+(1.0D0-A)/(M*(A+M-1.0D0))
+    let hM2 = ps + (complex 2. 0.)*Gamma.eulerComplex+s0
+//        HM2=PS+2.0D0*EL+S0
+    
+//        R=1.0D0
+//        HMAX=0.0D0
+//        HMIN=1.0D+300
+//        DO 50 K=1,150
+//           S1=0.0D0
+//           S2=0.0D0
+//           IF (B.GT.0.0) THEN
+//              DO 30 M=1,K
+//30               S1=S1-(M+2.0D0*A-2.0D0)/(M*(M+A-1.0D0))
+//              DO 35 M=1,N
+//35               S2=S2+1.0D0/(K+M)
+//           ELSE
+//              DO 40 M=1,K+N
+//40               S1=S1+(1.0D0-A)/(M*(M+A-1.0D0))
+//              DO 45 M=1,K
+//45               S2=S2+1.0D0/M
+//           ENDIF
+//           HW=2.0D0*EL+PS+S1-S2
+//           R=R*(A0+K-1.0D0)*X/((N+K)*K)
+//           HM2=HM2+R*HW
+//           HU2=DABS(HM2)
+//           IF (HU2.GT.HMAX) HMAX=HU2
+//           IF (HU2.LT.HMIN) HMIN=HU2
+//           IF (DABS((HM2-H0)/HM2).LT.1.0D-15) GO TO 55
+//50         H0=HM2
+    let db1 = log10 hMax
+    let db2 = if hMin.r <> 0. then log10 hMin else c0
+    let id1 = 15. - abs((db1-db2).r)
+    let id = if id1 < -100. then (complex id1 (db1-db2).i ) else (complex -100. 0.)
+    //let hM3 = (if n=0 then c0 else c1)
+    let hM3 =   List.init (n-1) (fun k ->   let ck = complex (float(k)) 0.
+                                            let cn = complex (float(n)) 0.
+                                            cPown ((a2+ck-c1)/((ck-cn)*ck)*x) k 
+                                                                                )
+                |> List.fold (fun acc r -> acc + r ) (if n=0 then c0 else c1)
+    let sa = ua*(hM1+hM2)
+//55      DB1=LOG10(HMAX)
+//        DB2=0.0D0
+//        IF (HMIN.NE.0.0) DB2=LOG10(HMIN)
+//        ID1=15-ABS(DB1-DB2)
+//        IF (ID1.LT.ID) ID=ID1
+//        HM3=1.0D0
+//        IF (N.EQ.0) HM3=0.0D0
+//        R=1.0D0
+//        DO 60 K=1,N-1
+//           R=R*(A2+K-1.0D0)/((K-N)*K)*X
+//60         HM3=HM3+R
+//        SA=UA*(HM1+HM2)
+//        SB=UB*HM3
+//        HU=SA+SB
+//        ID2=0.0D0
+//        IF (SA.NE.0.0) ID1=INT(LOG10(ABS(SA)))
+//        IF (HU.NE.0.0) ID2=INT(LOG10(ABS(HU)))
+//        IF (SA*SB.LT.0.0) ID=ID-ABS(ID1-ID2)
+
+
+    complex 1. 0.
+
+        
+        
+
+//       SUBROUTINE CHGUBI(A,B,X,HU,ID)
+//C
+//C       ======================================================
+//C       Purpose: Compute confluent hypergeometric function
+//C                U(a,b,x) with integer b ( b = ±1,±2,... )
+//C       Input  : a  --- Parameter
+//C                b  --- Parameter
+//C                x  --- Argument
+//C       Output:  HU --- U(a,b,x)
+//C                ID --- Estimated number of significant digits
+//C       Routines called:
+//C            (1) GAMMA2 for computing gamma function Г(x)
+//C            (2) PSI_SPEC for computing psi function
+//C       ======================================================
+//C
+//        IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+//        ID=-100
+//        EL=0.5772156649015329D0
+//        N=ABS(B-1)
+//        RN1=1.0D0
+//        RN=1.0D0
+//        DO 10 J=1,N
+//           RN=RN*J
+//           IF (J.EQ.N-1) RN1=RN
+//10      CONTINUE
+//        CALL PSI_SPEC(A,PS)
+//        CALL GAMMA2(A,GA)
+//        IF (B.GT.0.0) THEN
+//           A0=A
+//           A1=A-N
+//           A2=A1
+//           CALL GAMMA2(A1,GA1)
+//           UA=(-1)**(N-1)/(RN*GA1)
+//           UB=RN1/GA*X**(-N)
+//        ELSE
+//           A0=A+N
+//           A1=A0
+//           A2=A
+//           CALL GAMMA2(A1,GA1)
+//           UA=(-1)**(N-1)/(RN*GA)*X**N
+//           UB=RN1/GA1
+//        ENDIF
+//        HM1=1.0D0
+//        R=1.0D0
+//        HMAX=0.0D0
+//        HMIN=1.0D+300
+//        H0=0D0
+//        DO 15 K=1,150
+//           R=R*(A0+K-1.0D0)*X/((N+K)*K)
+//           HM1=HM1+R
+//           HU1=DABS(HM1)
+//           IF (HU1.GT.HMAX) HMAX=HU1
+//           IF (HU1.LT.HMIN) HMIN=HU1
+//           IF (DABS(HM1-H0).LT.DABS(HM1)*1.0D-15) GO TO 20
+//15         H0=HM1
+//20      DA1=LOG10(HMAX)
+//        DA2=0.0D0
+//        IF (HMIN.NE.0.0) DA2=LOG10(HMIN)
+//        ID=15-ABS(DA1-DA2)
+//        HM1=HM1*DLOG(X)
+//        S0=0.0D0
+//        DO 25 M=1,N
+//           IF (B.GE.0.0) S0=S0-1.0D0/M
+//25         IF (B.LT.0.0) S0=S0+(1.0D0-A)/(M*(A+M-1.0D0))
+//        HM2=PS+2.0D0*EL+S0
+//        R=1.0D0
+//        HMAX=0.0D0
+//        HMIN=1.0D+300
+//        DO 50 K=1,150
+//           S1=0.0D0
+//           S2=0.0D0
+//           IF (B.GT.0.0) THEN
+//              DO 30 M=1,K
+//30               S1=S1-(M+2.0D0*A-2.0D0)/(M*(M+A-1.0D0))
+//              DO 35 M=1,N
+//35               S2=S2+1.0D0/(K+M)
+//           ELSE
+//              DO 40 M=1,K+N
+//40               S1=S1+(1.0D0-A)/(M*(M+A-1.0D0))
+//              DO 45 M=1,K
+//45               S2=S2+1.0D0/M
+//           ENDIF
+//           HW=2.0D0*EL+PS+S1-S2
+//           R=R*(A0+K-1.0D0)*X/((N+K)*K)
+//           HM2=HM2+R*HW
+//           HU2=DABS(HM2)
+//           IF (HU2.GT.HMAX) HMAX=HU2
+//           IF (HU2.LT.HMIN) HMIN=HU2
+//           IF (DABS((HM2-H0)/HM2).LT.1.0D-15) GO TO 55
+//50         H0=HM2
+//55      DB1=LOG10(HMAX)
+//        DB2=0.0D0
+//        IF (HMIN.NE.0.0) DB2=LOG10(HMIN)
+//        ID1=15-ABS(DB1-DB2)
+//        IF (ID1.LT.ID) ID=ID1
+//        HM3=1.0D0
+//        IF (N.EQ.0) HM3=0.0D0
+//        R=1.0D0
+//        DO 60 K=1,N-1
+//           R=R*(A2+K-1.0D0)/((K-N)*K)*X
+//60         HM3=HM3+R
+//        SA=UA*(HM1+HM2)
+//        SB=UB*HM3
+//        HU=SA+SB
+//        ID2=0.0D0
+//        IF (SA.NE.0.0) ID1=INT(LOG10(ABS(SA)))
+//        IF (HU.NE.0.0) ID2=INT(LOG10(ABS(HU)))
+//        IF (SA*SB.LT.0.0) ID=ID-ABS(ID1-ID2)
+//        RETURN
+//        END
