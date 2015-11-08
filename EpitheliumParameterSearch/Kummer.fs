@@ -136,10 +136,19 @@ let cPown (c:complex) n =
         if n > 0 then core c (n-1) acc' else acc
     if n=0 then (complex 1. 0.) else core c n (complex 1. 0.)
 
+let ci a = 
+    //Convert a float or an int to a complex number
+    complex (float(a)) 0.
+
+let cf a = 
+    //Convert a float or an int to a complex number
+    complex a 0.
+
 let UInt a (b:complex) (x:complex) =
     let accuracy = 1e-15
     let n = int(abs(b.r-1.))
     let cn = complex (float(n)) 0.
+    let c2 = complex 2. 0.
     let c1 = complex 1. 0.
     let c0 = complex 0. 0.
     let rn_1 = complex (factorial (n-1)) 0.
@@ -216,7 +225,15 @@ let UInt a (b:complex) (x:complex) =
 //25         IF (B.LT.0.0) S0=S0+(1.0D0-A)/(M*(A+M-1.0D0))
     let hM2 = ps + (complex 2. 0.)*Gamma.eulerComplex+s0
 //        HM2=PS+2.0D0*EL+S0
+    let calculateS1S2 vk (vb:complex) va =    
+        List.init (vk-1) (fun k -> k+1)
+        |> List.fold (fun (s1,s2) vm -> if vb.r > 0. then
+                                            ( (s1-((ci vm)+c2*va-c2)) , (s2+c1/((ci vk)+(ci vm) )) ) 
+                                        else 
+                                            ( (s1+(c1-va)/((ci vm)*((ci vm)+va-c1))) , (s2+c1/(ci vm) )             )       ) (c0,c0)
     
+    let (hM2,hu2) =     List.init 149 (fun k -> calculateS1S2 (k+1) b a )
+                        |> List.fold () (hM2,hu2)
 //        R=1.0D0
 //        HMAX=0.0D0
 //        HMIN=1.0D+300
@@ -273,7 +290,7 @@ let UInt a (b:complex) (x:complex) =
 //        IF (SA*SB.LT.0.0) ID=ID-ABS(ID1-ID2)
 
 
-    complex 1. 0.
+    if false then complex 1. 0. else failwith "Function not complete"
 
         
         
