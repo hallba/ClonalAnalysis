@@ -232,8 +232,8 @@ let UInt a (b:complex) (x:complex) =
                                         else 
                                             ( (s1+(c1-va)/((ci vm)*((ci vm)+va-c1))) , (s2+c1/(ci vm) )             )       ) (c0,c0)
     
-    let (hM2,hu2) =     List.init 149 (fun k -> calculateS1S2 (k+1) b a )
-                        |> List.fold () (hM2,hu2)
+//    let (hM2,hu2) =     List.init 149 (fun k -> calculateS1S2 (k+1) b a )
+//                        |> List.fold () (hM2,hu2)
 //        R=1.0D0
 //        HMAX=0.0D0
 //        HMIN=1.0D+300
@@ -311,6 +311,9 @@ let UInt a (b:complex) (x:complex) =
 //C       ======================================================
 //C
 //        IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+
+//Initialise key variables
+
 //        ID=-100
 //        EL=0.5772156649015329D0
 //        N=ABS(B-1)
@@ -322,6 +325,9 @@ let UInt a (b:complex) (x:complex) =
 //10      CONTINUE
 //        CALL PSI_SPEC(A,PS)
 //        CALL GAMMA2(A,GA)
+
+//Initialise variables dependent on sign of B
+
 //        IF (B.GT.0.0) THEN
 //           A0=A
 //           A1=A-N
@@ -337,6 +343,9 @@ let UInt a (b:complex) (x:complex) =
 //           UA=(-1)**(N-1)/(RN*GA)*X**N
 //           UB=RN1/GA1
 //        ENDIF
+
+//Calculate hm1
+
 //        HM1=1.0D0
 //        R=1.0D0
 //        HMAX=0.0D0
@@ -355,6 +364,9 @@ let UInt a (b:complex) (x:complex) =
 //        IF (HMIN.NE.0.0) DA2=LOG10(HMIN)
 //        ID=15-ABS(DA1-DA2)
 //        HM1=HM1*DLOG(X)
+
+//Calculate HM2
+
 //        S0=0.0D0
 //        DO 25 M=1,N
 //           IF (B.GE.0.0) S0=S0-1.0D0/M
@@ -385,17 +397,26 @@ let UInt a (b:complex) (x:complex) =
 //           IF (HU2.LT.HMIN) HMIN=HU2
 //           IF (DABS((HM2-H0)/HM2).LT.1.0D-15) GO TO 55
 //50         H0=HM2
+
+//Some precision stuff- don't care
+
 //55      DB1=LOG10(HMAX)
 //        DB2=0.0D0
 //        IF (HMIN.NE.0.0) DB2=LOG10(HMIN)
 //        ID1=15-ABS(DB1-DB2)
 //        IF (ID1.LT.ID) ID=ID1
+
+//Calculate HM3
+
 //        HM3=1.0D0
 //        IF (N.EQ.0) HM3=0.0D0
 //        R=1.0D0
 //        DO 60 K=1,N-1
 //           R=R*(A2+K-1.0D0)/((K-N)*K)*X
 //60         HM3=HM3+R
+
+//Calculate the output from UA, UB, HM1-3
+
 //        SA=UA*(HM1+HM2)
 //        SB=UB*HM3
 //        HU=SA+SB
@@ -405,3 +426,126 @@ let UInt a (b:complex) (x:complex) =
 //        IF (SA*SB.LT.0.0) ID=ID-ABS(ID1-ID2)
 //        RETURN
 //        END
+
+//Functional reading- backwards from fortran
+//Only looking at HU output for now
+//HU = SA+SB
+//SB = UB*HM3
+//SA = UA*(HM1+HM2)
+//HM3 = SUM from k=1 to N-1 of f(k-1)*f(k) where f(0) = 1 and f(k) = (A2+K-1.0)/((K-N)*K)*X
+//HM2 = digamma(a) + 2.0 * euler constant + S0 + SUM from k=1 to 150 of HW* f(k-1)*f(k) where f(0)=1 and f(k) = (A0+K-1.0D0)*X/((N+K)*K)
+//      S0 = if B.r >= 0. then SUM from k=1 to n of -1/k
+//           else SUM from k=1 to n of (1-a)/(k*(a+k-1))
+//      HW(k) = 2.0 * euler constant + digamma(a)+S1-S2
+//          S1(k) = if B.r >= 0. the SUM from m=1 to k of -(m + 2. * a - 2.)/(m*(m+a-1))
+//                  else the SUM from m=1 to k+n of (1-a)/(m*(m+a-1))
+//          S2(k) = if B.r >= 0. the SUM from m=1 to n of 1/(k+m)
+//                  else the SUM from m=1 to k of 1/m
+//HM1 = log(x) * SUM from k=1 to 150 of f(k-1)*f(k) where f(0) = 1 and f(k) = (A0+K-1.0D0)*X/((N+K)*K)
+
+let seriesSum n f = 
+    //Complex  numbers do not support get_zero so rewritten to be exclusive
+    List.init n (fun n -> f n)
+    |> List.fold (fun acc f -> acc + f) (complex 0. 0.)
+
+let u'' a (b:complex) x =
+    //Some convienience variables
+    let c2 = complex 2. 0.
+    let c1 = complex 1. 0.
+    let c0 = complex 0. 0.
+    
+    //Define a tolerance for testing convergence
+    let accuracy = 1.e-15
+    
+    //Initialise key variables
+    let n = int(abs(b.r-1.))
+    let cn = complex (float(n)) 0.
+    let rn_1 = complex (factorial (n-1)) 0.
+    let rn = rn_1 * (complex (float(n)) 0.)
+    let ps = Gamma.diGammaComplex a
+    let ga = Gamma.lanczosGodfrey a
+
+    //Initialise variables dependent on the sign of b
+    let (a0,a1,a2,ga1,ua,ub) = if b.r > 0. then                                                 //NB- this is some kind of reflextion
+                                            let a0=a
+                                            let a1= a- (complex (float(n)) 0.)
+                                            let a2 = a1
+                                            let ga1 = Gamma.lanczosGodfrey a1
+                                            let ua = (complex -1. 0.)**(float(n)-1.)/(rn*ga1)
+                                            let ub = rn_1/ga*(x**(float(-n)))
+                                            (a0,a1,a2,ga1,ua,ub)
+                                        else
+                                            let a0 = a + cn
+                                            let a1 = a0
+                                            let a2 = a
+                                            let ga1 = Gamma.lanczosGodfrey a1
+                                            let ua = (complex -1. 0.)**(float(n-1)) /(rn*ga) *(x**float(n))
+                                            let ub = rn_1/ga1
+                                            (a0,a1,a2,ga1,ua,ub)
+
+    printf "Initialisation complete\n"
+
+    //Calculate hm1
+    let rec calculatehm1 step tol x n a0 acc rAcc = 
+        if step = 151 then acc*log(x) else
+            let k = complex (float(step)) 0.
+            let cn = complex (float(n)) 0.
+            let rAcc' = rAcc * (a0+k-c1)*x/((cn+k)*k)
+            let acc' = acc+rAcc'
+            //printf "HM1 tick\n"
+            //If change is below tol then the current result is good enough- return it
+            if ((rAcc'.r/acc'.r)<tol) then acc*log(x)
+            else calculatehm1 (step+1) tol x n a0 acc' rAcc'
+
+    let hm1 = calculatehm1 1 accuracy x n a0 c1 c1
+    printf "HM1 complete %A\n" hm1
+    //Calculate hm2
+    let calculatehm2 a a0 (b:complex) ps n =
+        //What happens when b=1 and n=0?
+        let s0 = if b.r >= 0. then seriesSum (n-1) ( fun k-> -c1/( complex (float(k+1)) 0. ) ) //SUM from k=1 to n of -1/k
+                 else seriesSum (n-1) (fun k -> let ck = complex (float(k+1)) 0.
+                                                (c1-a)/(ck*(a+ck-c1))               ) //SUM from k=1 to n of (1-a)/(k*(a+k-1))
+        let calculates1 k (b:complex) a = 
+            if b.r >= 0. then seriesSum (k-1) (fun m -> let cm = complex (float(m+1)) 0.
+                                                        -(cm+c2*a-c2)/(cm*(cm+a-c1))           )
+            else seriesSum (k+n-1) (fun m ->    let cm = complex (float(m+1)) 0.
+                                                (c1-a)/(cm*(cm+a-c1))                          )
+            //if B.r >= 0. the SUM from m=1 to k of -(m + 2. * a - 2.)/(m*(m+a-1))
+            //else the SUM from m=1 to k+n of (1-a)/(m*(m+a-1))
+        let calculates2 k (b:complex) = 
+            if b.r >= 0. then seriesSum (n-1) (fun m -> complex (1./(float(k+m+1))) 0. )
+            else seriesSum (k-1) (fun m -> complex (1./(float(m+1))) 0. )
+            //if B.r >= 0. the SUM from m=1 to n of 1/(k+m)
+            //        else the SUM from m=1 to k of 1/m
+        let rec corecalculatehm2 a a0 b ps n x step acc rAcc = 
+            if step = 0 then corecalculatehm2 a a0 b ps n x 1 (ps + c1 * Gamma.eulerComplex + s0 ) c1 //initial value
+            else if step = 150 then acc
+            else    let k = complex (float(step)) 0.
+                    let cn = complex (float(n)) 0.
+                    let rAcc' = rAcc * (a0+k-c1)*x/((cn+k)*k)
+                    let hw = c2 * Gamma.eulerComplex + ps + (calculates1 step b a) - (calculates2 step b) 
+                    let acc' = hw * rAcc' + acc
+                    //printf "HM2 tick\n"
+                    corecalculatehm2 a a0 b ps n x (step+1) acc' rAcc'
+        
+        corecalculatehm2 a a0 b ps n x 0 c0 c0
+    let hm2 = calculatehm2 a a0 b ps n
+    printf "HM2 complete %A\n" hm2
+    //Calculate hm3
+    let rec calculatehm3 step a2 n x acc rAcc =
+        if step=0 && n <> 0 then calculatehm3 (step+1) a2 n x c1 c1
+        else if step = 0 then c0
+        else if step = n then acc
+        else 
+            let k = complex (float(step)) 0.
+            let cn = complex (float(n)) 0.
+            let rAcc' = rAcc*(a2+k-c1)/((k-cn)*k)*x
+            let acc' = acc+rAcc'
+            //printf "HM3 tick\n"
+            calculatehm3 (step+1) a2 n x acc' rAcc'
+    let hm3 = calculatehm3 0 a2 n x c0 c0
+    printf "HM3 complete %A\n" hm3
+    //Calculate output based on hm1, hm2, hm3, ua and ub
+    let sa=ua*(hm1+hm2)
+    let sb=ub*hm3
+    sa+sb
