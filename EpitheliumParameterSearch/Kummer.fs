@@ -496,14 +496,13 @@ let u'' a (b:complex) x =
             //If change is below tol then the current result is good enough- return it
             if ((rAcc'.r/acc'.r)<tol) then acc*log(x)
             else calculatehm1 (step+1) tol x n a0 acc' rAcc'
-
     let hm1 = calculatehm1 1 accuracy x n a0 c1 c1
     printf "HM1 complete %A\n" hm1
     //Calculate hm2
     let calculatehm2 a a0 (b:complex) ps n =
         //What happens when b=1 and n=0?
-        let s0 = if b.r >= 0. then seriesSum (n-1) ( fun k-> -c1/( complex (float(k+1)) 0. ) ) //SUM from k=1 to n of -1/k
-                 else seriesSum (n-1) (fun k -> let ck = complex (float(k+1)) 0.
+        let s0 = if b.r >= 0. then seriesSum (n) ( fun k-> -c1/( complex (float(k+1)) 0. ) ) //SUM from k=1 to n of -1/k
+                 else seriesSum (n) (fun k ->   let ck = complex (float(k+1)) 0.
                                                 (c1-a)/(ck*(a+ck-c1))               ) //SUM from k=1 to n of (1-a)/(k*(a+k-1))
         let calculates1 k (b:complex) a = 
             if b.r >= 0. then seriesSum (k) (fun m ->   let cm = complex (float(m+1)) 0.
@@ -526,11 +525,11 @@ let u'' a (b:complex) x =
                     let s1 = (calculates1 step b a)
                     let s2 = (calculates2 step b) 
                     let hw = c2 * Gamma.eulerComplex + ps + s1 - s2
-                    printf "HM2-R' %A HM2-hw' %A S1 %A S2 %A Cons %A\n" rAcc' hw s1 s2 (ps+c2 * Gamma.eulerComplex)
+                    //printf "HM2-R' %A HM2-hw' %A S1 %A S2 %A Cons %A\n" rAcc' hw s1 s2 (ps+c2 * Gamma.eulerComplex)
                     let acc' = hw * rAcc' + acc
-                    //printf "HM2 tick\n"
+                    printf "acc %A acc' %A\n" acc acc'
                     corecalculatehm2 a a0 b ps n x (step+1) acc' rAcc'
-        
+        printf "S0 %A\n" s0
         corecalculatehm2 a a0 b ps n x 0 c0 c0
     let hm2 = calculatehm2 a a0 b ps n
     printf "HM2 complete %A\n" hm2
