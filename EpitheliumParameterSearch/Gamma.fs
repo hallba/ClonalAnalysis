@@ -95,9 +95,9 @@ let lanczosGodfrey (z:complex) =
     //let g = complex 5. 0.
     let result = List.map (fun f -> complex f 0.) c
                  |> List.map (fun c -> c/W ) //Skip this step if using a above
-                 |> List.mapi (fun i c -> if i = 0 then c else c/(z'+(complex (float(i)) 0. ) ) )
+                 |> List.mapi (fun i c -> if i = 0 then c else if (z'+(complex (float(i)) 0. ) ) = (complex 0. 0.) then (complex (c.r*infinity) z'.i) else c/(z'+(complex (float(i)) 0. ) ) )
                  |> List.fold (fun acc item -> acc + item ) (complex 0. 0.)
-                 |> fun f ->  ( ( (z' + g + c0_5 )/ce ) ** (z'+c0_5) ) * f
+                 |> fun f ->  if System.Double.IsInfinity(f.r) then (complex f.r (f.r*( ( (z' + g + c0_5 )/ce ) ** (z'+c0_5) ).i) ) else ( ( (z' + g + c0_5 )/ce ) ** (z'+c0_5) ) * f
     result
  
 let logLanczosGodfrey (z:complex) =

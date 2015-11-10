@@ -301,17 +301,17 @@ let uInt a (b:complex) x =
                                             let a0=a
                                             let a1= a- (complex (float(n)) 0.)
                                             let a2 = a1
-                                            let ga1 = Gamma.lanczosGodfrey a1 //Known weakness- this is infinite where a:int and a > b
-                                            let ua = (complex -1. 0.)**(float(n)-1.)/(rn*ga1)
-                                            let ub = rn_1/ga*(x**(float(-n)))
+                                            let ga1 = Gamma.lanczosGodfrey a1 
+                                            let ua = if not (System.Double.IsInfinity(ga1.r)) then (complex -1. 0.)**(float(n)-1.)/(rn*ga1) else c0
+                                            let ub = if not (System.Double.IsInfinity(ga.r)) then rn_1/ga*(x**(float(-n))) else c0
                                             (a0,a1,a2,ga1,ua,ub)
                                         else
                                             let a0 = a + cn
                                             let a1 = a0
                                             let a2 = a
                                             let ga1 = Gamma.lanczosGodfrey a1
-                                            let ua = (complex -1. 0.)**(float(n-1)) /(rn*ga) *(x**float(n))
-                                            let ub = rn_1/ga1
+                                            let ua = if not (System.Double.IsInfinity(ga1.r)) then (complex -1. 0.)**(float(n-1)) /(rn*ga) *(x**float(n)) else c0
+                                            let ub = if not (System.Double.IsInfinity(ga.r)) then rn_1/ga1 else c0
                                             (a0,a1,a2,ga1,ua,ub)
 
     //printf "Initialisation complete\n"
