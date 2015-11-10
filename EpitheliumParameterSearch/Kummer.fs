@@ -292,7 +292,7 @@ let uInt a (b:complex) x =
     let n = int(abs(b.r-1.))
     let cn = complex (float(n)) 0.
     let rn_1 = complex (factorial (n-1)) 0.
-    let rn = if n <> 0 then rn_1 * (complex (float(n)) 0.) else rn_1
+    let rn = if n > 0 then rn_1 * (complex (float(n)) 0.) else rn_1
     let ps = Gamma.diGammaComplex a
     let ga = Gamma.lanczosGodfrey a
 
@@ -301,7 +301,7 @@ let uInt a (b:complex) x =
                                             let a0=a
                                             let a1= a- (complex (float(n)) 0.)
                                             let a2 = a1
-                                            let ga1 = Gamma.lanczosGodfrey a1
+                                            let ga1 = Gamma.lanczosGodfrey a1 //Known weakness- this is infinite where a:int and a > b
                                             let ua = (complex -1. 0.)**(float(n)-1.)/(rn*ga1)
                                             let ub = rn_1/ga*(x**(float(-n)))
                                             (a0,a1,a2,ga1,ua,ub)
@@ -377,8 +377,8 @@ let uInt a (b:complex) x =
             //printf "HM3 tick\n"
             calculatehm3 (step+1) a2 n x acc' rAcc'
     let hm3 = calculatehm3 0 a2 n x c0 c0
-    //printf "HM3 complete %A\n" hm3
-    //printf "UA %A UB %A\n" ua ub
+    printf "HM1 %A HM2 %A HM3 %A\n" hm1 hm2 hm3
+    printf "UA %A UB %A\n" ua ub
     //Calculate output based on hm1, hm2, hm3, ua and ub
     let sa=ua*(hm1+hm2)
     let sb=ub*hm3
