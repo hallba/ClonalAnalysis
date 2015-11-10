@@ -265,6 +265,7 @@ let seriesSum n f =
     |> List.fold (fun acc f -> acc + f) (complex 0. 0.)
 
 let uInt a (b:complex) x =
+    if debug then printf "Using integer U algorithm B=%A\n" b
     //Some convienience variables
     let c2 = complex 2. 0.
     let c1 = complex 1. 0.
@@ -373,8 +374,9 @@ let uInt a (b:complex) x =
 let U a (b:complex) z = 
     //undefined for integer b, so we make small perturbations to integer
     //let b = if b.r%1. = 0. then b + complex 0.000000000001 0. else b
-    if b.r%0.=0. then uInt a b z
+    if b.r%1.=0. then uInt a b z
     else
+        if debug then printf "Using default U algorithm B=%A\n" b
         //(M a b z)* (complex (gamma(1.-b)/gamma(1.+a-b)) 0. ) + (M (1.+a-b) (2.-b) z) * (complex (gamma(b-1.)/gamma(a)) 0.) * z**(1.-b)
         //(M a b z)* ( cGamma ((complex 1. 0.)-b)/cGamma ((complex 1. 0.)+a-b) ) + (M ((complex 1. 0.)+a-b) ((complex 2. 0.)-b) z) * ( cGamma (b-(complex 1. 0.))/ cGamma a ) * z**((complex 1. 0.)-b)
     
