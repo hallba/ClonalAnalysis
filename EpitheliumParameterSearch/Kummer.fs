@@ -506,9 +506,9 @@ let u'' a (b:complex) x =
                  else seriesSum (n-1) (fun k -> let ck = complex (float(k+1)) 0.
                                                 (c1-a)/(ck*(a+ck-c1))               ) //SUM from k=1 to n of (1-a)/(k*(a+k-1))
         let calculates1 k (b:complex) a = 
-            if b.r >= 0. then seriesSum (k-1) (fun m -> let cm = complex (float(m+1)) 0.
+            if b.r >= 0. then seriesSum (k) (fun m ->   let cm = complex (float(m+1)) 0.
                                                         -(cm+c2*a-c2)/(cm*(cm+a-c1))           )
-            else seriesSum (k+n-1) (fun m ->    let cm = complex (float(m+1)) 0.
+            else seriesSum (k+n) (fun m ->      let cm = complex (float(m+1)) 0.
                                                 (c1-a)/(cm*(cm+a-c1))                          )
             //if B.r >= 0. the SUM from m=1 to k of -(m + 2. * a - 2.)/(m*(m+a-1))
             //else the SUM from m=1 to k+n of (1-a)/(m*(m+a-1))
@@ -526,7 +526,7 @@ let u'' a (b:complex) x =
                     let s1 = (calculates1 step b a)
                     let s2 = (calculates2 step b) 
                     let hw = c2 * Gamma.eulerComplex + ps + s1 - s2
-                    printf "HM2-R' %A HM2-hw' %A S1 %A S2 %A\n" rAcc' hw s1 s2
+                    printf "HM2-R' %A HM2-hw' %A S1 %A S2 %A Cons %A\n" rAcc' hw s1 s2 (ps+c2 * Gamma.eulerComplex)
                     let acc' = hw * rAcc' + acc
                     //printf "HM2 tick\n"
                     corecalculatehm2 a a0 b ps n x (step+1) acc' rAcc'
