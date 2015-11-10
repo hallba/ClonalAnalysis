@@ -6,7 +6,7 @@ let debug = Gamma.debug
 
 let factorial n =
     let rec core n acc =
-        if n=0 then acc else core (n-1) (float(n)*acc)
+        if n<=0 then acc else core (n-1) (float(n)*acc)
     core n 1.
 
 let cGamma = Gamma.complexGamma Gamma.lanczosGodfrey
@@ -111,25 +111,6 @@ let U a (b:complex) z =
     //MathNet.Numerics.SpecialFunctions.Gamma(-2.*b) * (M a b z) / MathNet.Numerics.SpecialFunctions.Gamma(0.5 - a - b) + MathNet.Numerics.SpecialFunctions.Gamma(2.*b) * (M a -b z) / MathNet.Numerics.SpecialFunctions.Gamma(0.5 - a + b)
     result 
 
-//let U' a (b:complex) z =
-//    let rec core a (b:complex) z attempt =
-//        if attempt > 10 then failwith "stuck in a loop"
-//        printf "b=%A\n" b
-//        if b.r%1. <> 0. || b.r > 1. then
-//                let result = (M a b z)* exp( Gamma.logLanczosGodfrey ((complex 1. 0.)-b) - Gamma.logLanczosGodfrey ((complex 1. 0.)+a-b) ) + (M ((complex 1. 0.)+a-b) ((complex 2. 0.)-b) z) * exp( Gamma.logLanczosGodfrey (b-(complex 1. 0.)) - Gamma.logLanczosGodfrey a ) * z**((complex 1. 0.)-b)
-//                if debug then printf "U(%A,%A,%A)\nResult=%A\n" a b z result
-//                result 
-//        else
-//            let c1 = complex 1. 0.
-//            let c2 = complex 2. 0.
-//            let a' = a+c1-b
-//            let b' = c2-b
-//            printf "b'=%A\n" b'
-//            let result = z**(c1-b) * (core a' b' z (attempt+1) )
-//            if debug then printf "U(%A,%A,%A)\nResult=%A\n" a b z result
-//            result
-//    core a b z 0
-
 let cPown (c:complex) n = 
     let rec core c n acc =
         let acc' = c * acc
@@ -137,162 +118,12 @@ let cPown (c:complex) n =
     if n=0 then (complex 1. 0.) else core c n (complex 1. 0.)
 
 let ci a = 
-    //Convert a float or an int to a complex number
+    //Convert an int to a complex number
     complex (float(a)) 0.
 
 let cf a = 
-    //Convert a float or an int to a complex number
+    //Convert a float to a complex number
     complex a 0.
-
-let UInt a (b:complex) (x:complex) =
-    let accuracy = 1e-15
-    let n = int(abs(b.r-1.))
-    let cn = complex (float(n)) 0.
-    let c2 = complex 2. 0.
-    let c1 = complex 1. 0.
-    let c0 = complex 0. 0.
-    let rn_1 = complex (factorial (n-1)) 0.
-    let rn = rn_1 * (complex (float(n)) 0.)
-    let ps = Gamma.diGammaComplex a
-    let ga = Gamma.lanczosGodfrey a
-    let (a0,a1,a2,ga1,ua,ub) = if b.r > 0. then                                                 //NB- this is some kind of reflextion
-                                               let a0=a
-                                               let a1= a- (complex (float(n)) 0.)
-                                               let a2 = a1
-                                               let ga1 = Gamma.lanczosGodfrey a1
-                                               let ua = (complex -1. 0.)**(float(n)-1.)/(rn*ga1)
-                                               //UA=(-1)**(N-1)/(RN*GA1)
-                                               let ub = rn_1/ga*(x**(float(-n)))
-                                               //UB=RN1/GA*X**(-N)
-                                               (a0,a1,a2,ga1,ua,ub)
-                                            else
-                                                //           A0=A+N
-                                                let a0 = a + cn
-                                                //           A1=A0
-                                                let a1 = a0
-                                                //           A2=A
-                                                let a2 = a
-                                                //           CALL GAMMA2(A1,GA1)
-                                                let ga1 = Gamma.lanczosGodfrey a1
-                                                //           UA=(-1)**(N-1)/(RN*GA)*X**N
-                                                let ua = (complex -1. 0.)**(float(n-1)) /(rn*ga) *(x**float(n))
-                                                //           UB=RN1/GA1
-                                                let ub = rn_1/ga1
-                                                (a0,a1,a2,ga1,ua,ub)
-    let hMax,hMin,hM1,h0 =  List.init 150 (fun k -> let ck = complex (float(k)) 0.
-                                                    cPown ((a0+ck-c1)*x/((ck+cn)*ck)) (k+1)        )
-                            |> List.fold (fun ((hMax:complex),(hMin:complex),hM1,h0) r ->   let hM1' = hM1 + r
-                                                                                            let hu1 = complex (abs(hM1'.r)) hM1'.i
-                                                                                            let hMax',hMin' =   match (hu1.r>hMax.r,hu1.r<hMin.r) with
-                                                                                                                | (false,false) -> hMax, hMin
-                                                                                                                | (true,false)  -> hu1, hMin
-                                                                                                                | (false,true)  -> hMax, hu1
-                                                                                                                | (true,true)   -> hu1, hu1
-                                                                                            //Some sort of break in the loop missing here based on accuracy
-                                                                                            let h0' = hM1'
-                                                                                            (hMax',hMin',hM1',h0')
-                                                                                        ) (c0,(complex 1.e300 0.),c1,c0)
-
-                                                
-//        HM1=1.0D0
-//        R=1.0D0
-//        HMAX=0.0D0
-//        HMIN=1.0D+300
-//        H0=0D0
-//        DO 15 K=1,150
-//           R=R*(A0+K-1.0D0)*X/((N+K)*K)
-//           HM1=HM1+R
-//           HU1=DABS(HM1)
-//           IF (HU1.GT.HMAX) HMAX=HU1
-//           IF (HU1.LT.HMIN) HMIN=HU1
-//           IF (DABS(HM1-H0).LT.DABS(HM1)*1.0D-15) GO TO 20
-//15         H0=HM1
-    let da1 = log10(hMax)
-    let da2 = if hMin.r<>0. then log10(hMin) else c0
-    let id = 15. - abs(da1.r-da2.r)
-    let hM1 = hM1*log(x)
-    let s0 = List.init (n-1) (fun m ->  let cm = complex (float(m+1)) 0.
-                                        if b.r >= 0. then -c1/cm else (c1-a)/(cm*(a+cm-c1) ) )
-             |> List.fold (fun acc ms -> acc + ms) c0
-//20      DA1=LOG10(HMAX)
-//        DA2=0.0D0
-//        IF (HMIN.NE.0.0) DA2=LOG10(HMIN)
-//        ID=15-ABS(DA1-DA2)
-//        HM1=HM1*DLOG(X)
-//        S0=0.0D0
-//        DO 25 M=1,N
-//           IF (B.GE.0.0) S0=S0-1.0D0/M
-//25         IF (B.LT.0.0) S0=S0+(1.0D0-A)/(M*(A+M-1.0D0))
-    let hM2 = ps + (complex 2. 0.)*Gamma.eulerComplex+s0
-//        HM2=PS+2.0D0*EL+S0
-    let calculateS1S2 vk (vb:complex) va =    
-        List.init (vk-1) (fun k -> k+1)
-        |> List.fold (fun (s1,s2) vm -> if vb.r > 0. then
-                                            ( (s1-((ci vm)+c2*va-c2)) , (s2+c1/((ci vk)+(ci vm) )) ) 
-                                        else 
-                                            ( (s1+(c1-va)/((ci vm)*((ci vm)+va-c1))) , (s2+c1/(ci vm) )             )       ) (c0,c0)
-    
-//    let (hM2,hu2) =     List.init 149 (fun k -> calculateS1S2 (k+1) b a )
-//                        |> List.fold () (hM2,hu2)
-//        R=1.0D0
-//        HMAX=0.0D0
-//        HMIN=1.0D+300
-//        DO 50 K=1,150
-//           S1=0.0D0
-//           S2=0.0D0
-//           IF (B.GT.0.0) THEN
-//              DO 30 M=1,K
-//30               S1=S1-(M+2.0D0*A-2.0D0)/(M*(M+A-1.0D0))
-//              DO 35 M=1,N
-//35               S2=S2+1.0D0/(K+M)
-//           ELSE
-//              DO 40 M=1,K+N
-//40               S1=S1+(1.0D0-A)/(M*(M+A-1.0D0))
-//              DO 45 M=1,K
-//45               S2=S2+1.0D0/M
-//           ENDIF
-//           HW=2.0D0*EL+PS+S1-S2
-//           R=R*(A0+K-1.0D0)*X/((N+K)*K)
-//           HM2=HM2+R*HW
-//           HU2=DABS(HM2)
-//           IF (HU2.GT.HMAX) HMAX=HU2
-//           IF (HU2.LT.HMIN) HMIN=HU2
-//           IF (DABS((HM2-H0)/HM2).LT.1.0D-15) GO TO 55
-//50         H0=HM2
-    let db1 = log10 hMax
-    let db2 = if hMin.r <> 0. then log10 hMin else c0
-    let id1 = 15. - abs((db1-db2).r)
-    let id = if id1 < -100. then (complex id1 (db1-db2).i ) else (complex -100. 0.)
-    //let hM3 = (if n=0 then c0 else c1)
-    let hM3 =   List.init (n-1) (fun k ->   let ck = complex (float(k)) 0.
-                                            let cn = complex (float(n)) 0.
-                                            cPown ((a2+ck-c1)/((ck-cn)*ck)*x) k 
-                                                                                )
-                |> List.fold (fun acc r -> acc + r ) (if n=0 then c0 else c1)
-    let sa = ua*(hM1+hM2)
-//55      DB1=LOG10(HMAX)
-//        DB2=0.0D0
-//        IF (HMIN.NE.0.0) DB2=LOG10(HMIN)
-//        ID1=15-ABS(DB1-DB2)
-//        IF (ID1.LT.ID) ID=ID1
-//        HM3=1.0D0
-//        IF (N.EQ.0) HM3=0.0D0
-//        R=1.0D0
-//        DO 60 K=1,N-1
-//           R=R*(A2+K-1.0D0)/((K-N)*K)*X
-//60         HM3=HM3+R
-//        SA=UA*(HM1+HM2)
-//        SB=UB*HM3
-//        HU=SA+SB
-//        ID2=0.0D0
-//        IF (SA.NE.0.0) ID1=INT(LOG10(ABS(SA)))
-//        IF (HU.NE.0.0) ID2=INT(LOG10(ABS(HU)))
-//        IF (SA*SB.LT.0.0) ID=ID-ABS(ID1-ID2)
-
-
-    if false then complex 1. 0. else failwith "Function not complete"
-
-        
         
 
 //       SUBROUTINE CHGUBI(A,B,X,HU,ID)
@@ -448,7 +279,7 @@ let seriesSum n f =
     List.init n (fun n -> f n)
     |> List.fold (fun acc f -> acc + f) (complex 0. 0.)
 
-let u'' a (b:complex) x =
+let uInt a (b:complex) x =
     //Some convienience variables
     let c2 = complex 2. 0.
     let c1 = complex 1. 0.
@@ -461,7 +292,7 @@ let u'' a (b:complex) x =
     let n = int(abs(b.r-1.))
     let cn = complex (float(n)) 0.
     let rn_1 = complex (factorial (n-1)) 0.
-    let rn = rn_1 * (complex (float(n)) 0.)
+    let rn = if n <> 0 then rn_1 * (complex (float(n)) 0.) else rn_1
     let ps = Gamma.diGammaComplex a
     let ga = Gamma.lanczosGodfrey a
 
@@ -483,7 +314,7 @@ let u'' a (b:complex) x =
                                             let ub = rn_1/ga1
                                             (a0,a1,a2,ga1,ua,ub)
 
-    printf "Initialisation complete\n"
+    //printf "Initialisation complete\n"
 
     //Calculate hm1
     let rec calculatehm1 step tol x n a0 acc rAcc = 
@@ -497,7 +328,7 @@ let u'' a (b:complex) x =
             if ((rAcc'.r/acc'.r)<tol) then acc*log(x)
             else calculatehm1 (step+1) tol x n a0 acc' rAcc'
     let hm1 = calculatehm1 1 accuracy x n a0 c1 c1
-    printf "HM1 complete %A\n" hm1
+    //printf "HM1 complete %A\n" hm1
     //Calculate hm2
     let calculatehm2 a a0 (b:complex) ps n =
         //What happens when b=1 and n=0?
@@ -517,7 +348,7 @@ let u'' a (b:complex) x =
             //if B.r >= 0. the SUM from m=1 to n of 1/(k+m)
             //        else the SUM from m=1 to k of 1/m
         let rec corecalculatehm2 a a0 b ps n x step acc rAcc = 
-            if step = 0 then corecalculatehm2 a a0 b ps n x 1 (ps + c1 * Gamma.eulerComplex + s0 ) c1 //initial value
+            if step = 0 then corecalculatehm2 a a0 b ps n x 1 (ps + c2 * Gamma.eulerComplex + s0 ) c1 //initial value
             else if step = 150 then acc
             else    let k = complex (float(step)) 0.
                     let cn = complex (float(n)) 0.
@@ -527,12 +358,12 @@ let u'' a (b:complex) x =
                     let hw = c2 * Gamma.eulerComplex + ps + s1 - s2
                     //printf "HM2-R' %A HM2-hw' %A S1 %A S2 %A Cons %A\n" rAcc' hw s1 s2 (ps+c2 * Gamma.eulerComplex)
                     let acc' = hw * rAcc' + acc
-                    printf "acc %A acc' %A\n" acc acc'
+                    //printf "acc %A diff %A acc' %A\n" acc (hw*rAcc') acc'
                     corecalculatehm2 a a0 b ps n x (step+1) acc' rAcc'
-        printf "S0 %A\n" s0
+        //printf "S0 %A\n" s0
         corecalculatehm2 a a0 b ps n x 0 c0 c0
     let hm2 = calculatehm2 a a0 b ps n
-    printf "HM2 complete %A\n" hm2
+    //printf "HM2 complete %A\n" hm2
     //Calculate hm3
     let rec calculatehm3 step a2 n x acc rAcc =
         if step=0 && n <> 0 then calculatehm3 (step+1) a2 n x c1 c1
@@ -546,7 +377,8 @@ let u'' a (b:complex) x =
             //printf "HM3 tick\n"
             calculatehm3 (step+1) a2 n x acc' rAcc'
     let hm3 = calculatehm3 0 a2 n x c0 c0
-    printf "HM3 complete %A\n" hm3
+    //printf "HM3 complete %A\n" hm3
+    //printf "UA %A UB %A\n" ua ub
     //Calculate output based on hm1, hm2, hm3, ua and ub
     let sa=ua*(hm1+hm2)
     let sb=ub*hm3
