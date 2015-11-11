@@ -237,12 +237,29 @@ let uInt a (b:complex) x =
     let sb=ub*hm3
     sa+sb
 
+let analyticalContinuationU a b z =
+    //gama = gamma(a);
+    //gamb = gamma(b);
+    //gam2mb = gamma(2-b);
+    //gamopamb = gamma(1+a-b);
+
+    //u = pi * (exp(log(KummerComplex(a,b,z))-log(gamb)-log(gamopamb)) - z^(1-b)*             exp(log(KummerComplex(1+a-b,2-b,z))-log(gama)-log(gam2mb))) / sin(pi*b);
+    let c1 = complex 1. 0.
+    let c2 = complex 2. 0.
+    let cI = complex 0. 1.
+    let gA = Gamma.lanczosGodfrey a
+    let gB = Gamma.lanczosGodfrey b
+    let g2b = Gamma.lanczosGodfrey (c2-b)
+    let go = Gamma.lanczosGodfrey (c1+a-b)
+    Gamma.complexPi * (exp( log(M a b z) - log(gA) - log(go) ) - z**(c1-b)* exp(log(M (c1+a-b) (c2-b) z)-log(gA)-log(g2b))) / sin(Gamma.complexPi*b);
+
+    //Gamma.complexPi / sin(b*Gamma.complexPi) * exp(z) * ( (M (b-a) b z)/((Gamma.lanczosGodfrey (c1+a-b) )*(Gamma.lanczosGodfrey b)) - z**(c1-b)*(M (c1-a) (c2-b) z ) * exp((c1-b)*cI*Gamma.complexPi) / ((Gamma.lanczosGodfrey a)*(Gamma.lanczosGodfrey (c2-b))) )
 
 let U a (b:complex) z = 
     //undefined for integer b, so we make small perturbations to integer
-    //let b = if b.r%1. = 0. then b + complex 0.000000000001 0. else b
-    if b.r%1.=0. then uInt a b z
-    else
+        let b = if b.r%1. = 0. then b + complex 0.000000000001 0. else b
+    //if b.r%1.=0. then uInt a b z
+    //else
         if debug then printf "Using default U algorithm B=%A\n" b
         //(M a b z)* (complex (gamma(1.-b)/gamma(1.+a-b)) 0. ) + (M (1.+a-b) (2.-b) z) * (complex (gamma(b-1.)/gamma(a)) 0.) * z**(1.-b)
         //(M a b z)* ( cGamma ((complex 1. 0.)-b)/cGamma ((complex 1. 0.)+a-b) ) + (M ((complex 1. 0.)+a-b) ((complex 2. 0.)-b) z) * ( cGamma (b-(complex 1. 0.))/ cGamma a ) * z**((complex 1. 0.)-b)
