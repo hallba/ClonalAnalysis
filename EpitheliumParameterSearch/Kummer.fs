@@ -132,6 +132,7 @@ let seriesSum n f =
     |> List.fold (fun acc f -> acc + f) (complex 0. 0.)
 
 let uInt a (b:complex) x =
+    //uInt doesn't seem to work for complex numbers- but I lack a test set
     if debug then printf "Using integer U algorithm B=%A\n" b
     //Some convienience variables
     let c2 = complex 2. 0.
@@ -230,12 +231,14 @@ let uInt a (b:complex) x =
             //printf "HM3 tick\n"
             calculatehm3 (step+1) a2 n x acc' rAcc'
     let hm3 = calculatehm3 0 a2 n x c0 c0
-    printf "HM1 %A HM2 %A HM3 %A\n" hm1 hm2 hm3
-    printf "UA %A UB %A\n" ua ub
+    //printf "HM1 %A HM2 %A HM3 %A\n" hm1 hm2 hm3
+    //printf "UA %A UB %A\n" ua ub
     //Calculate output based on hm1, hm2, hm3, ua and ub
     let sa=ua*(hm1+hm2)
     let sb=ub*hm3
-    sa+sb
+    let result = sa+sb
+    if debug then printf "U(%A,%A,%A)\nResult=%A\n" a b x result
+    result
 
 let analyticalContinuationU a b z =
     //gama = gamma(a);
@@ -255,6 +258,51 @@ let analyticalContinuationU a b z =
 
     //Gamma.complexPi / sin(b*Gamma.complexPi) * exp(z) * ( (M (b-a) b z)/((Gamma.lanczosGodfrey (c1+a-b) )*(Gamma.lanczosGodfrey b)) - z**(c1-b)*(M (c1-a) (c2-b) z ) * exp((c1-b)*cI*Gamma.complexPi) / ((Gamma.lanczosGodfrey a)*(Gamma.lanczosGodfrey (c2-b))) )
 
+//mpmath approach to U
+//Either
+//bb=1+a-b
+//v = ctx.hypsum(2, 0, (atype, bbtype), [a, bb], -1/z, maxterms=ctx.prec) #(2F0)?
+//return v / z**a
+//Or- if no convergence
+//def h(a,b):
+//        w = ctx.sinpi(b)
+//        T1 = ([ctx.pi,w],[1,-1],[],[a-b+1,b],[a],[b],z)
+//        T2 = ([-ctx.pi,w,z],[1,-1,1-b],[],[a,2-b],[a-b+1],[2-b],z)
+//        return T1, T2
+//ctx.hypercomb(h, [a,b], **kwargs)
+
+//hypsum is just a hypergeometric sum
+//    def hypsum(ctx, p, q, types, coeffs, z, maxterms=6000, **kwargs):
+//        coeffs = list(coeffs)
+//        num = range(p)
+//        den = range(p,p+q)
+//        tol = ctx.eps
+//        s = t = 1.0
+//        k = 0
+//        while 1:
+//            for i in num: t *= (coeffs[i]+k)
+//            for i in den: t /= (coeffs[i]+k)
+//            k += 1; t /= k; t *= z; s += t
+//            if abs(t) < tol:
+//                return s
+//            if k > maxterms:
+//                raise ctx.NoConvergence\
+
+let hyperGeometric2F0 a b z =
+    let rec core a b z delta acc step accuracy maxSteps =
+        if step > maxSteps then failwith "2F0 failed to converge"
+        let step' = step + 1
+        let complexStep = complex (float(step)) 0.
+        let delta'  = delta * (a+complexStep) * (b+complexStep) / (complex (float(step')) 0.) * z
+        let acc' = acc + delta'
+        if abs(delta'.r) < accuracy then acc' else core a b z delta' acc' step' accuracy maxSteps
+    core a b z (complex 1. 0.) (complex 1. 0.) 0 1.e-26 6000
+
+let seriesU a b z =
+    let o = (complex 1. 0.) + a-b
+    let z' = (complex -1. 0.)/z
+    (hyperGeometric2F0 a o z)/ (z ** a)
+    
 let U a (b:complex) z = 
     //undefined for integer b, so we make small perturbations to integer
         let b = if b.r%1. = 0. then b + complex 0.000000000001 0. else b
