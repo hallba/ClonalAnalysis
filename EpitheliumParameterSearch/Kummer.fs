@@ -240,24 +240,6 @@ let uInt a (b:complex) x =
     if debug then printf "U(%A,%A,%A)\nResult=%A\n" a b x result
     result
 
-let analyticalContinuationU a b z =
-    //gama = gamma(a);
-    //gamb = gamma(b);
-    //gam2mb = gamma(2-b);
-    //gamopamb = gamma(1+a-b);
-
-    //u = pi * (exp(log(KummerComplex(a,b,z))-log(gamb)-log(gamopamb)) - z^(1-b)*             exp(log(KummerComplex(1+a-b,2-b,z))-log(gama)-log(gam2mb))) / sin(pi*b);
-    let c1 = complex 1. 0.
-    let c2 = complex 2. 0.
-    let cI = complex 0. 1.
-    let gA = Gamma.lanczosGodfrey a
-    let gB = Gamma.lanczosGodfrey b
-    let g2b = Gamma.lanczosGodfrey (c2-b)
-    let go = Gamma.lanczosGodfrey (c1+a-b)
-    Gamma.complexPi * (exp( log(M a b z) - log(gA) - log(go) ) - z**(c1-b)* exp(log(M (c1+a-b) (c2-b) z)-log(gA)-log(g2b))) / sin(Gamma.complexPi*b);
-
-    //Gamma.complexPi / sin(b*Gamma.complexPi) * exp(z) * ( (M (b-a) b z)/((Gamma.lanczosGodfrey (c1+a-b) )*(Gamma.lanczosGodfrey b)) - z**(c1-b)*(M (c1-a) (c2-b) z ) * exp((c1-b)*cI*Gamma.complexPi) / ((Gamma.lanczosGodfrey a)*(Gamma.lanczosGodfrey (c2-b))) )
-
 //mpmath approach to U
 //Either
 //bb=1+a-b
@@ -288,14 +270,172 @@ let analyticalContinuationU a b z =
 //            if k > maxterms:
 //                raise ctx.NoConvergence\
 
+//hypercomb is a weighted combination of hypergeometric functions
+//def hypercomb(ctx, function, params=[], discard_known_zeros=True, **kwargs):
+//    orig = ctx.prec
+//    sumvalue = ctx.zero
+//    dist = ctx.nint_distance
+//    ninf = ctx.ninf
+//    orig_params = params[:]
+//    verbose = kwargs.get('verbose', False)
+//    maxprec = kwargs.get('maxprec', ctx._default_hyper_maxprec(orig))
+//    kwargs['maxprec'] = maxprec   # For calls to hypsum
+//    zeroprec = kwargs.get('zeroprec')
+//    infprec = kwargs.get('infprec')
+//    perturbed_reference_value = None
+//    hextra = 0
+//    try:
+//        while 1:
+//            ctx.prec += 10
+//            if ctx.prec > maxprec:
+//                raise ValueError(_hypercomb_msg % (orig, ctx.prec))
+//            orig2 = ctx.prec
+//            params = orig_params[:]
+//            terms = function(*params)
+//            if verbose:
+//                print()
+//                print("ENTERING hypercomb main loop")
+//                print("prec =", ctx.prec)
+//                print("hextra", hextra)
+//            perturb, recompute, extraprec, discard = \
+//                _check_need_perturb(ctx, terms, orig, discard_known_zeros)
+//            ctx.prec += extraprec
+//            if perturb:
+//                if "hmag" in kwargs:
+//                    hmag = kwargs["hmag"]
+//                elif ctx._fixed_precision:
+//                    hmag = int(ctx.prec*0.3)
+//                else:
+//                    hmag = orig + 10 + hextra
+//                h = ctx.ldexp(ctx.one, -hmag)
+//                ctx.prec = orig2 + 10 + hmag + 10
+//                for k in range(len(params)):
+//                    params[k] += h
+//                    # Heuristically ensure that the perturbations
+//                    # are "independent" so that two perturbations
+//                    # don't accidentally cancel each other out
+//                    # in a subtraction.
+//                    h += h/(k+1)
+//            if recompute:
+//                terms = function(*params)
+//            if discard_known_zeros:
+//                terms = [term for (i, term) in enumerate(terms) if i not in discard]
+//            if not terms:
+//                return ctx.zero
+//            evaluated_terms = []
+//            for term_index, term_data in enumerate(terms):
+//                w_s, c_s, alpha_s, beta_s, a_s, b_s, z = term_data
+//                if verbose:
+//                    print()
+//                    print("  Evaluating term %i/%i : %iF%i" % \
+//                        (term_index+1, len(terms), len(a_s), len(b_s)))
+//                    print("    powers", ctx.nstr(w_s), ctx.nstr(c_s))
+//                    print("    gamma", ctx.nstr(alpha_s), ctx.nstr(beta_s))
+//                    print("    hyper", ctx.nstr(a_s), ctx.nstr(b_s))
+//                    print("    z", ctx.nstr(z))
+//                #v = ctx.hyper(a_s, b_s, z, **kwargs)
+//                #for a in alpha_s: v *= ctx.gamma(a)
+//                #for b in beta_s: v *= ctx.rgamma(b)
+//                #for w, c in zip(w_s, c_s): v *= ctx.power(w, c)
+//                v = ctx.fprod([ctx.hyper(a_s, b_s, z, **kwargs)] + \
+//                    [ctx.gamma(a) for a in alpha_s] + \
+//                    [ctx.rgamma(b) for b in beta_s] + \
+//                    [ctx.power(w,c) for (w,c) in zip(w_s,c_s)])
+//                if verbose:
+//                    print("    Value:", v)
+//                evaluated_terms.append(v)
+//
+//            if len(terms) == 1 and (not perturb):
+//                sumvalue = evaluated_terms[0]
+//                break
+//
+//            if ctx._fixed_precision:
+//                sumvalue = ctx.fsum(evaluated_terms)
+//                break
+//
+//            sumvalue = ctx.fsum(evaluated_terms)
+//            term_magnitudes = [ctx.mag(x) for x in evaluated_terms]
+//            max_magnitude = max(term_magnitudes)
+//            sum_magnitude = ctx.mag(sumvalue)
+//            cancellation = max_magnitude - sum_magnitude
+//            if verbose:
+//                print()
+//                print("  Cancellation:", cancellation, "bits")
+//                print("  Increased precision:", ctx.prec - orig, "bits")
+//
+//            precision_ok = cancellation < ctx.prec - orig
+//
+//            if zeroprec is None:
+//                zero_ok = False
+//            else:
+//                zero_ok = max_magnitude - ctx.prec < -zeroprec
+//            if infprec is None:
+//                inf_ok = False
+//            else:
+//                inf_ok = max_magnitude > infprec
+//
+//            if precision_ok and (not perturb) or ctx.isnan(cancellation):
+//                break
+//            elif precision_ok:
+//                if perturbed_reference_value is None:
+//                    hextra += 20
+//                    perturbed_reference_value = sumvalue
+//                    continue
+//                elif ctx.mag(sumvalue - perturbed_reference_value) <= \
+//                        ctx.mag(sumvalue) - orig:
+//                    break
+//                elif zero_ok:
+//                    sumvalue = ctx.zero
+//                    break
+//                elif inf_ok:
+//                    sumvalue = ctx.inf
+//                    break
+//                elif 'hmag' in kwargs:
+//                    break
+//                else:
+//                    hextra *= 2
+//                    perturbed_reference_value = sumvalue
+//            # Increase precision
+//            else:
+//                increment = min(max(cancellation, orig//2), max(extraprec,orig))
+//                ctx.prec += increment
+//                if verbose:
+//                    print("  Must start over with increased precision")
+//                continue
+//    finally:
+//        ctx.prec = orig
+//    return +sumvalue
+
+let combinationU a b z =
+//    let h a b =
+//        let w = sin(Gamma.complexPi*b)
+//        let T1 = ([Gamma.complexPi,w],[1,-1],[],[a-b+1,b],[a],[b],z)
+//        let T2 = ([-Gamma.complexPi,w,z],[1,-1,1-b],[],[a,2-b],[a-b+1],[2-b],z)
+//        (T1,T2)
+    //The combination technique from mpmath seems to be the analytical continuation function
+    if debug then printf "Using analytical continuation U algorithm B=%A\n" b
+    let w = sin(Gamma.complexPi*b)
+    let pi = Gamma.complexPi
+    let c1 = complex 1. 0.
+    let c2 = complex 2. 0.
+    let T1 = (M a b z) / ((Gamma.lanczosGodfrey b)*(Gamma.lanczosGodfrey (a-b+c1))) * pi/w
+    let T2 = (M (a-b+c1) (c2-b) z) / ((Gamma.lanczosGodfrey a)*(Gamma.lanczosGodfrey (c2-b))) * -pi/w * z**(c1-b)
+    let result = T1+T2
+    if debug then printf "U(%A,%A,%A)\nResult=%A\n" a b z result
+    result
+
+
+
 let hyperGeometric2F0 a b z =
     let rec core a b z delta acc step accuracy maxSteps =
-        if step > maxSteps then failwith "2F0 failed to converge"
-        let step' = step + 1
-        let complexStep = complex (float(step)) 0.
-        let delta'  = delta * (a+complexStep) * (b+complexStep) / (complex (float(step')) 0.) * z
-        let acc' = acc + delta'
-        if abs(delta'.r) < accuracy then acc' else core a b z delta' acc' step' accuracy maxSteps
+        if step > maxSteps then combinationU a b z
+        else
+            let step' = step + 1
+            let complexStep = complex (float(step)) 0.
+            let delta'  = delta * (a+complexStep) * (b+complexStep) / (complex (float(step')) 0.) * z
+            let acc' = acc + delta'
+            if abs(delta'.r) < accuracy then printf "U(%A,%A,%A)\nResult=%A\n" a b z acc'; acc' else core a b z delta' acc' step' accuracy maxSteps
+    if debug then printf "Using 2F0 U algorithm B=%A\n" b
     core a b z (complex 1. 0.) (complex 1. 0.) 0 1.e-26 6000
 
 let seriesU a b z =
@@ -305,9 +445,9 @@ let seriesU a b z =
     
 let U a (b:complex) z = 
     //undefined for integer b, so we make small perturbations to integer
-        let b = if b.r%1. = 0. then b + complex 0.000000000001 0. else b
-    //if b.r%1.=0. then uInt a b z
-    //else
+        //let b = if b.r%1. = 0. then b + complex 0.000000000001 0. else b
+    if b.r%1.=0. then hyperGeometric2F0 a b z
+    else
         if debug then printf "Using default U algorithm B=%A\n" b
         //(M a b z)* (complex (gamma(1.-b)/gamma(1.+a-b)) 0. ) + (M (1.+a-b) (2.-b) z) * (complex (gamma(b-1.)/gamma(a)) 0.) * z**(1.-b)
         //(M a b z)* ( cGamma ((complex 1. 0.)-b)/cGamma ((complex 1. 0.)+a-b) ) + (M ((complex 1. 0.)+a-b) ((complex 2. 0.)-b) z) * ( cGamma (b-(complex 1. 0.))/ cGamma a ) * z**((complex 1. 0.)-b)
