@@ -1,7 +1,7 @@
 ﻿module CalculateProbability
 
 //Abstracting the details of how everything is calculated
-type technique = Simulation | Analysis
+type technique = Simulation | Hybrid
 
 let analyticalScan allParameters = 
     let completeSet = Types.createParameterSet allParameters
@@ -34,6 +34,6 @@ let simulationScan allParameters number =
 let parameterSearch (input : Types.parameterSearch) approach =
     match (approach,input.deltaRange) with 
     | (Simulation,_) -> simulationScan input 10000
-    | (Analysis,Types.delta.Range(_)) -> failwith "Cannot generate an analytical result with non-zero delta"
-    | (Analysis,Types.delta.Zero) -> analyticalScan input
+    | (Hybrid,Types.delta.Range(_)) -> failwith "Cannot generate an analytical result with non-zero delta"
+    | (Hybrid,Types.delta.Zero) -> analyticalScan input
 

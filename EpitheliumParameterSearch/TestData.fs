@@ -26,9 +26,9 @@ let kasumiCG = {
 
 let kasumiLocal =  {
                             Types.timePoints    =   [|(11.<Types.week>/7.); (21.<Types.week>/7.) ; (42.<Types.week>/7.) ; (90.<Types.week>/7.) ; (180.<Types.week>/7.) ; (365.<Types.week>/7.); (545.<Types.week>/7.)|]
-                            Types.rhoRange      =   Array.init 18 (fun i -> float(i)*0.05 + 0.05 )
-                            Types.rRange        =   Array.init 10 (fun i -> float(i)*0.025<Types.probability>  + 0.01<Types.probability>)
-                            Types.lambdaRange   =   Array.init 20 (fun i -> float(i)*0.1<Types.cell/Types.week> + 0.1<Types.cell/Types.week>)
+                            Types.rhoRange      =   Array.init 12 (fun i -> float(i)*0.02 + 0.7 )
+                            Types.rRange        =   Array.init 10 (fun i -> float(i)*0.02<Types.probability>  + 0.05<Types.probability>)
+                            Types.lambdaRange   =   Array.init 10 (fun i -> float(i)*0.5<Types.cell/Types.week> + 0.1<Types.cell/Types.week>)
                             Types.maxN          =   195
                             Types.deltaRange    =   Types.Zero
                             Types.results       =   None
@@ -37,7 +37,7 @@ let kasumiLocal =  {
 
 let tinyScan = {
                             Types.timePoints    =   [|(11.<Types.week>/7.); (21.<Types.week>/7.)|]
-                            Types.rhoRange      =   [|0.15;0.20;0.25|]
+                            Types.rhoRange      =   [|0.80;0.85;0.90|]
                             Types.rRange        =   [|0.1<Types.probability>;0.15<Types.probability>|]
                             Types.lambdaRange   =   [|1.<Types.cell/Types.week>;1.2<Types.cell/Types.week>;1.4<Types.cell/Types.week>;1.6<Types.cell/Types.week>|]
                             Types.maxN          =   195

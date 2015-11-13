@@ -11,3 +11,6 @@ let k_50 = (complex -0.0320515775716552 0.999486216200688)
 let r = 0.01
 let t = (T*1.<Types.cell^-1>) 
 ignore (AnalyticalCloneSizeDistribution.F k_50 k_50 t r gamma)
+
+//This produces a NaN in the matlab :(
+ignore (AnalyticalCloneSizeDistribution.F (complex 0.999486216200688 0.0320515775716552) (complex 0.999486216200688 0.0320515775716552) 202.4285714 0.0501 4.025125628 )

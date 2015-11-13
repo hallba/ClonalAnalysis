@@ -48,6 +48,7 @@ let probabilityCloneSurvival (inputParameters: Types.parameterSet) =
     let p = (complex 1. 0.) - F (complex 0. 0.) (complex 0. 0.) (T*1.<Types.cell^-1>) (inputParameters.r*1.<Types.probability^-1>) gamma
     //printf "P: %A\n" p
     //The following line checks for "pathological points" as described in the original matlab implementation. Note that, following the matlab code, this is a different transformation than before
+    //The below could give an infinite loop...
     if p.r < 0. || p.r > 1. || System.Double.IsNaN(p.r) || System.Double.IsInfinity(p.r) then ((complex 1. 0.) - F (complex 0. 0.) (complex 0. 0.) (T*1.<Types.cell^-1>) ((inputParameters.r*1.<Types.probability^-1>)+0.00001) (gamma+0.00001)) else p
 
 let complexSum c =
@@ -60,7 +61,8 @@ let complexSum c =
 let probabilityCloneSizes (inputParameters : Types.parameterSet) nRange maxN =
     let rec core (inputParameters :Types.parameterSet) nRange maxN attempt maxAttempts =
         //No infinite loops
-        if attempt = maxAttempts then failwith("Too many attempts to modify a pathological point")
+        //Better to fall back to simulation?
+        if attempt = maxAttempts then printf "Pathological point: %A\n" inputParameters; failwith("Too many attempts to modify a pathological point")
         
         let N = if List.max nRange >= maxN then List.max nRange + 1 else maxN
         //Note that the below line is incorrect, and the effects corrected later
@@ -78,6 +80,6 @@ let probabilityCloneSizes (inputParameters : Types.parameterSet) nRange maxN =
         //Test for pathological points
         if totalP > 1. || totalP < 0. || System.Double.IsNaN(totalP) then 
             //NB: this is from the matlab code- note that it is a specified small perturbation, not 0.1%
-            ignore (printf "Pathological point: %A.\nsum%A=%A\n Making 0.1%% perturbation\n" inputParameters p totalP); core inputParameters.correctPathologicalPoint nRange maxN (attempt+1) maxAttempts else
+            ignore (if Gamma.debug then printf "Pathological point: %A.\nsum%A=%A\n Making 0.1%% perturbation\n" inputParameters p totalP); core inputParameters.correctPathologicalPoint nRange maxN (attempt+1) maxAttempts else
             p |> Array.ofList
-    core inputParameters nRange maxN 0 1
+    core inputParameters nRange maxN 0 10000
