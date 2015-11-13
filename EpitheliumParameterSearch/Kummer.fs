@@ -428,15 +428,18 @@ let combinationU a b z =
         //Need to test for precision and following mpmath approach peturb+increase precision
         (T1,T2)
     let rec core a b z step max = 
-        if step = max then failwith "Tried repeatedly to increase the precision of the result through perturbation, without success"
-        let result = calculateTerms a b z |> fun (T1,T2) -> (T1+T2)
-        if result <> complex 0. 0. then result //lets assume its good enough 
+        if step = max then
+            printf "Tried repeatedly to increase the precision of the result through perturbation, without success\n"
+            complex 0. 0.
         else
-            //Lets perturb the inputs slightly
-            printf "Perturbing a and b slightly to generate non-zero result\n"
-            let a' = a + (complex (pown 2. -100) 0.)
-            let b' = b + (complex (pown 2. -101) 0.)
-            core a' b' z (step+1) max
+            let result = calculateTerms a b z |> fun (T1,T2) -> (T1+T2)
+            if result <> complex 0. 0. then result //lets assume its good enough 
+            else
+                //Lets perturb the inputs slightly
+                printf "Perturbing a and b slightly to generate non-zero result\n"
+                let a' = a + (complex (pown 2. -100) 0.)
+                let b' = b + (complex (pown 2. -101) 0.)
+                core a' b' z (step+1) max
     let result = core a b z 0 10
     if debug then printf "U(%A,%A,%A)\nResult=%A\n" a b z result
     result
