@@ -2,7 +2,7 @@
 
 open MathNet.Numerics
 
-let debug = true
+let debug = false
 
 let eulerConstant = 0.5772156649015329
 let eulerComplex  = complex eulerConstant 0.

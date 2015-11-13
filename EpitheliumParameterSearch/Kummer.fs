@@ -436,7 +436,7 @@ let combinationU a b z =
             if result <> complex 0. 0. then result //lets assume its good enough 
             else
                 //Lets perturb the inputs slightly
-                printf "Perturbing a and b slightly to generate non-zero result\n"
+                if debug then printf "Perturbing a and b slightly to generate non-zero result\n"
                 let a' = a + (complex (pown 2. -100) 0.)
                 let b' = b + (complex (pown 2. -101) 0.)
                 core a' b' z (step+1) max
@@ -480,8 +480,12 @@ let uDefault a b z =
     result 
     
 let U a (b:complex) z = 
-    //undefined for integer b, so we make small perturbations to integer
-        //let b = if b.r%1. = 0. then b + complex 0.000000000001 0. else b
-    if b.r%1.=0. then hyperGeometric2F0 a b z
-    else
-        uDefault a b z
+    //undefined for integer b, so we make small perturbations to integer.
+    //This is a widely used approach (!) (see mpmath above) but requires perturbations to be smaller than double precision in some instances
+    //To get this to work here we would need complex numbers with arbitrary precision- though it is not at all clear that this would
+    //fix the pathological points problem. So- we use a small modification which is sufficient for many values, but in 
+    //AnalyticalCloneSizeDistribution fall back to simulation
+    let b = if b.r%1. = 0. then b + complex 0.000000000001 0. else b
+    //if b.r%1.=0. then hyperGeometric2F0 a b z
+    //else
+    uDefault a b z
