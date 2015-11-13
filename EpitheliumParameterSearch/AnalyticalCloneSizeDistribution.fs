@@ -28,7 +28,7 @@ let F x y t r gamma =
     
     //Interesting bug. Forget to put the brackets around the  gg*u0- type checker does not find this, gives different result
     let C = ((-Q*(Whittaker.M w c0 (gg*u0)) ) + (c1+ (c2 * w) )*(Whittaker.M (c1+w) c0 (gg*u0))) / (Q*(Whittaker.W w c0 (gg*u0) )+c2*(Whittaker.W (c1+w) c0 (gg*u0) ) )
-    //printf "Q %A C %A\n" Q C
+    if Gamma.debug then printf "Q %A C %A\n" Q C
     c1 - u + 
     (u*(v+c1)- cGamma *(c1+c2*w) ) / (c2*cR) +
     (cGamma/(c2*cR)) * ( ( c1 + c2*w ) * Whittaker.M (c1+w) c0 (u*gg)  - c2*C*(Whittaker.W (c1+w) c0 (u*gg) ) ) /
