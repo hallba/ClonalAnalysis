@@ -2,6 +2,8 @@
 
 open MathNet.Numerics
 
+type outcome = PathologicalPoint | Result of float []
+
 let F x y t r gamma = 
     //v needs to be complex for values of r over 0.25 
     //-> if v is complex, then w is complex
@@ -83,3 +85,31 @@ let probabilityCloneSizes (inputParameters : Types.parameterSet) nRange maxN =
             ignore (if Gamma.debug then printf "Pathological point: %A.\nsum%A=%A\n Making 0.1%% perturbation\n" inputParameters p totalP); core inputParameters.correctPathologicalPoint nRange maxN (attempt+1) maxAttempts else
             p |> Array.ofList
     core inputParameters nRange maxN 0 10000
+
+let probabilityCloneDistribution (inputParameters : Types.parameterSet) =
+    //This code replaces the PSurv and Pn codes above- it attempts to calculate a distribution analytically, 
+    //but falls back to simulation if the result is pathological i.e. the total probability > 1 or < 0 or isNaN
+    let nRange = List.init (inputParameters.maxN+1) (fun i -> i)
+    let gamma = inputParameters.rho/(1.-inputParameters.rho)
+    let T = inputParameters.lambda * inputParameters.time
+    let N = inputParameters.maxN + 1
+
+    let probS = (complex 1. 0.) - F (complex 0. 0.) (complex 0. 0.) (T*1.<Types.cell^-1>) (inputParameters.r*1.<Types.probability^-1>) gamma |> fun i -> i.r
+
+    let k = List.init N (fun item -> exp(complex 0. (float(item)/float(N)*System.Math.PI*2.)) )
+    let gVals = List.map (fun zMember -> if zMember = complex 1. 0. then complex 1. 0. else F zMember zMember (T*1.<Types.cell^-1>) (inputParameters.r*1.<Types.probability^-1>) gamma) k 
+    let probN = List.map (fun n -> List.mapi (fun index i -> i * exp(complex 0. (-2.*System.Math.PI*float(n)*float(index)/float(N)) ) ) gVals ) nRange 
+                |>List.map (fun item -> (complexSum item).r/float(N) )
+                |>List.map (fun item -> if item < 0. then 0. else item) //In the matlab code we had an additional test which could allow values less
+
+    let allProb = probS::probN
+    let totalP  = List.sum allProb
+
+    if totalP > 1. || totalP < 0. || System.Double.IsNaN(totalP) then //Something went wrong- fallback to simulation
+        SimulationCloneSizeDistribution.parameterSetToClone (SimulationCloneSizeDistribution.Specified([ inputParameters.time ])) inputParameters
+        |> SimulationCloneSizeDistribution.cloneProbability 10000 //Run 10000 simulations
+        |> fun i -> match i with
+                    | [] -> failwith "Generated an empty list somehow"
+                    | head::[] -> head.basalFraction
+                    | _ -> failwith "Generated too many timepoints"
+    else Array.ofList allProb
