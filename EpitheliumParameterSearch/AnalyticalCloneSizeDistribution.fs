@@ -94,7 +94,7 @@ let probabilityCloneDistribution (inputParameters : Types.parameterSet) =
     let T = inputParameters.lambda * inputParameters.time
     let N = inputParameters.maxN + 1
 
-    let probS = (complex 1. 0.) - F (complex 0. 0.) (complex 0. 0.) (T*1.<Types.cell^-1>) (inputParameters.r*1.<Types.probability^-1>) gamma |> fun i -> i.r
+    let probS = F (complex 0. 0.) (complex 0. 0.) (T*1.<Types.cell^-1>) (inputParameters.r*1.<Types.probability^-1>) gamma |> fun i -> i.r
 
     let k = List.init N (fun item -> exp(complex 0. (float(item)/float(N)*System.Math.PI*2.)) )
     let gVals = List.map (fun zMember -> if zMember = complex 1. 0. then complex 1. 0. else F zMember zMember (T*1.<Types.cell^-1>) (inputParameters.r*1.<Types.probability^-1>) gamma) k 
