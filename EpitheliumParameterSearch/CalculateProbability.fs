@@ -47,5 +47,5 @@ let parameterSearch (input : Types.parameterSearch) approach =
     | (Analysis,Types.delta.Range(_)) -> failwith "Cannot generate an analytical result with non-zero delta"
     | (Analysis,Types.delta.Zero) -> analyticalScan input
     | (Hybrid,Types.delta.Range(_)) -> failwith "Cannot generate a hybrid result with non-zero delta"
-    | (Hybrid,Types.delta.Zero) -> analyticalScan input
+    | (Hybrid,Types.delta.Zero) -> hybridScan input
 
