@@ -454,7 +454,8 @@ let hyperGeometric2F0 a b z =
             let complexStep = complex (float(step)) 0.
             let delta'  = delta * (a+complexStep) * (b+complexStep) / (complex (float(step')) 0.) * z
             let acc' = acc + delta'
-            if abs(delta'.r) < accuracy then printf "U(%A,%A,%A)\nResult=%A\n" a b z acc'; acc' else core a b z delta' acc' step' accuracy maxSteps
+            if debug then printf "2F0 delta = %A\n" delta'
+            if abs(delta'.r) < accuracy then (if debug then printf "U(%A,%A,%A)\nResult=%A\n" a b z acc'); acc' else core a b z delta' acc' step' accuracy maxSteps
     if debug then printf "Using 2F0 U algorithm B=%A\n" b
     core a b z (complex 1. 0.) (complex 1. 0.) 0 1.e-26 6000
 
