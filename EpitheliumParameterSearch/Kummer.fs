@@ -412,15 +412,32 @@ let combinationU a b z =
 //        let T1 = ([Gamma.complexPi,w],[1,-1],[],[a-b+1,b],[a],[b],z)
 //        let T2 = ([-Gamma.complexPi,w,z],[1,-1,1-b],[],[a,2-b],[a-b+1],[2-b],z)
 //        (T1,T2)
+//    let mag (a:complex) = 
+//        int(log(abs(a.r)+abs(a.i))/log(2.))+1
     //The combination technique from mpmath seems to be the analytical continuation function
     if debug then printf "Using analytical continuation U algorithm B=%A\n" b
-    let w = sin(Gamma.complexPi*b)
-    let pi = Gamma.complexPi
-    let c1 = complex 1. 0.
-    let c2 = complex 2. 0.
-    let T1 = (M a b z) / ((Gamma.lanczosGodfrey b)*(Gamma.lanczosGodfrey (a-b+c1))) * pi/w
-    let T2 = (M (a-b+c1) (c2-b) z) / ((Gamma.lanczosGodfrey a)*(Gamma.lanczosGodfrey (c2-b))) * -pi/w * z**(c1-b)
-    let result = T1+T2
+    let calculateTerms a b z =
+        let w = sin(Gamma.complexPi*b)
+        let pi = Gamma.complexPi
+        let c1 = complex 1. 0.
+        let c2 = complex 2. 0.
+        let T1 = (M a b z) / ((Gamma.lanczosGodfrey b)*(Gamma.lanczosGodfrey (a-b+c1))) * pi/w
+        let T2 = (M (a-b+c1) (c2-b) z) / ((Gamma.lanczosGodfrey a)*(Gamma.lanczosGodfrey (c2-b))) * -pi/w * z**(c1-b)
+        //let result = T1+T2
+        if debug then printf "####\nT1 %A\nT2 %A\n" T1 T2
+        //Need to test for precision and following mpmath approach peturb+increase precision
+        (T1,T2)
+    let rec core a b z step max = 
+        if step = max then failwith "Tried repeatedly to increase the precision of the result through perturbation, without success"
+        let result = calculateTerms a b z |> fun (T1,T2) -> (T1+T2)
+        if result <> complex 0. 0. then result //lets assume its good enough 
+        else
+            //Lets perturb the inputs slightly
+            printf "Perturbing a and b slightly to generate non-zero result\n"
+            let a' = a + (complex (pown 2. -100) 0.)
+            let b' = b + (complex (pown 2. -101) 0.)
+            core a' b' z (step+1) max
+    let result = core a b z 0 10
     if debug then printf "U(%A,%A,%A)\nResult=%A\n" a b z result
     result
 
