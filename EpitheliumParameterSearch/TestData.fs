@@ -59,6 +59,61 @@ let tinyScan = {
 
 let testClone = Types.testSystem |> SimulationCloneSizeDistribution.parameterSetToClone (SimulationCloneSizeDistribution.Specified([1.428571429<Types.week>;])) ;;
 
+let kasumip53Data = [
+                    {
+                    time=(11.<Types.week>/7.)
+                    cloneSize=[|13;2;0;0;0|]
+                    }
+                    {
+                    time=(11.<Types.week>/7.)
+                    cloneSize=[|12;2;0;0;0|]
+                    }
+                    {
+                    time=(11.<Types.week>/7.)
+                    cloneSize=[|92;23;11;4;0|]
+                    }
+                    
+                    {
+                    time=(21.<Types.week>/7.)
+                    cloneSize=[|49;23;5;2;1;1|]
+                    }
+                    {
+                    time=(21.<Types.week>/7.)
+                    cloneSize=[|61;14;2;2;0;1|]
+                    }
+                    {
+                    time=(21.<Types.week>/7.)
+                    cloneSize=[|6;4;2;0;1;0;0;1|]
+                    }
+
+                    {
+                    time=(42.<Types.week>/7.)
+                    cloneSize=[|50;17;5;7;1;1;0;1;0;1;0;0;0;1;0;0;0;0;1|]
+                    }
+                    {
+                    time=(42.<Types.week>/7.)
+                    cloneSize=[|33;12;12;6;1;1;2;0;1;0;2;0;0;0;0;0;1;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1|]
+                    }
+                    {
+                    time=(42.<Types.week>/7.)
+                    cloneSize=[|37;12;6;6;0;1;2;0;0;1|]
+                    }
+
+                    {
+                    time=(90.<Types.week>/7.)
+                    cloneSize=[|25;9;13;6;2;3;3;2;2;0;1;2;0;0;0;1;1;0;0;3;1;0;0;0;2;0;0;0;0;2;0;0;0;0;0;1;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1|]
+                    }
+                    {
+                    time=(90.<Types.week>/7.)
+                    cloneSize=[|31;9;7;4;5;3;4;3;4;0;2;1;1;1;0;1;1;1;1;0;1;0;0;0;0;0;0;0;1;0;1|]
+                    }
+                    {
+                    time=(90.<Types.week>/7.)
+                    cloneSize=[|24;18;11;5;3;5;1;2;1;2;2;0;1;1;0;2;3;0;0;0;1|]
+                    }
+
+                    ]
+
 let kasumiWTData = [
                     {
                     time=(11.<Types.week>/7.)
@@ -177,5 +232,5 @@ let kasumiWTData = [
                     {
                     time=(545.<Types.week>/7.)
                     cloneSize=[|6;6;2;4;0;0;0;0;1;0;1;0;0;1;0;0;0;0;1|]
-                    }
+                    }                    
                     ]
