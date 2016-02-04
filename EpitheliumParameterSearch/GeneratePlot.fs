@@ -10,7 +10,7 @@ let twoDArrayToString matrix =
     let mutable s = ""
     for i=0 to (xL - 1) do
         for j=0 to (yL - 1) do
-            s <- s + (sprintf " %A" matrix.[i].[j])
+            s <- s + (sprintf " %f" matrix.[i].[j])
         s <- s + "\n"
     s
 
