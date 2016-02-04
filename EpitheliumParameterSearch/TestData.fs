@@ -19,7 +19,7 @@ let kasumip53 =  {
                             Types.rRange        =   [|0.01<Types.probability>;|]
                             Types.lambdaRange   =   [|1.2<Types.cell/Types.week>;|]
                             Types.maxN          =   195
-                            Types.deltaRange    =   Types.Range(List.init 100 (fun i -> float(i)*0.01<Types.probability>) )
+                            Types.deltaRange    =   Types.Range(List.init 101 (fun i -> float(i)*0.01<Types.probability>) )
                             Types.results       =   None
                             Types.excludeOnes   =   true
                             }
