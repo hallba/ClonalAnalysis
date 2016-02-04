@@ -21,6 +21,7 @@ let threads = System.Environment.ProcessorCount *2
 let arrayMap f c =
     //Array.Parallel.map f c
     let tasks = Array.length c
+    if tasks < threads then Array.Parallel.map f c else
     let tasksPerThread = tasks/threads
     let additionalTasks = tasks%threads
     let pstruct =   Array.init threads (fun i ->    let threadTasks = if i=(threads-1) then tasksPerThread + additionalTasks else tasksPerThread
