@@ -14,8 +14,8 @@ let kasumiParameters =  {
                             }
 
 let kasumip53 =  {
-                            Types.timePoints    =   [|(11.<Types.week>/7.); (21.<Types.week>/7.) ; (42.<Types.week>/7.) ; (90.<Types.week>/7.) ; (180.<Types.week>/7.) ; (365.<Types.week>/7.); (545.<Types.week>/7.)|]
-                            Types.rhoRange      =   [|0.6;|]
+                            Types.timePoints    =   [|(11.<Types.week>/7.); (21.<Types.week>/7.) ; (42.<Types.week>/7.) ; (90.<Types.week>/7.) |]
+                            Types.rhoRange      =   [|0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9|]
                             Types.rRange        =   [|0.05<Types.probability>;|]
                             Types.lambdaRange   =   [|1.2<Types.cell/Types.week>;|]
                             Types.maxN          =   195
