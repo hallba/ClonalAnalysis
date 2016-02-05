@@ -47,7 +47,20 @@ let twoDArrayToXfarbe matrix filename (title: string option) =
     file.WriteLine(twoDArrayToString matrix)
     file.Close
 
-//let projectDeltaXRho likelihoodMatrix = 
-    
+let projectDeltaXRho (likelihoodMatrix:float [] [] [] []) = 
+    let dL = Array.length likelihoodMatrix
+    let rhoL = Array.length likelihoodMatrix.[0].[0]
 
+    let lambdaL = Array.length likelihoodMatrix.[0]
+    let rL = Array.length likelihoodMatrix.[0].[0].[0]
 
+    let result = Array.init dL ( fun i -> Array.init rhoL (fun j -> 0.) )
+
+    for i=0 to dL-1 do
+        for j=0 to rhoL-1 do
+            
+            for k=0 to lambdaL-1 do
+                for l=0 to rL-1 do
+                    result.[i].[j] <- result.[i].[j] + likelihoodMatrix.[i].[k].[j].[l]
+
+    result
