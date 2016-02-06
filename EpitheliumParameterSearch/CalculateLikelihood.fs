@@ -23,6 +23,7 @@ type experimentalDataPoint = {  time: float<Types.week>
                                                             {this with cloneSize=cloneSize' }
                                                        else if n < (Array.length this.cloneSize ) then failwith "Cannot curtail a set of observations"
                                                        else this
+                                //BH- Use of mutability here creates unexpected side effects- data is altered
                                 member this.excludeOnes = this.cloneSize.[0] <- 0
                                                           this
 
