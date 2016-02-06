@@ -14,8 +14,8 @@ let twoDArrayToString matrix =
         s <- s + "\n"
     s
 
-let maxLikelihood (matrix: float [] [] [] []) = 
-    let mutable max = -infinity
+let compLikelihood (matrix: float [] [] [] []) f = 
+    let mutable max = matrix.[0].[0].[0].[0]
     let mutable coordinate = (0,0,0,0)
     let a = Array.length matrix
     let b = Array.length matrix.[0]
@@ -26,12 +26,17 @@ let maxLikelihood (matrix: float [] [] [] []) =
         for j=0 to (b-1) do
             for k=0 to (c-1) do
                 for l=0 to (d-1) do
-                    if matrix.[i].[j].[k].[l] > max then 
+                    if (f matrix.[i].[j].[k].[l] max) then 
                         max <- matrix.[i].[j].[k].[l]
                         coordinate <- (i,j,k,l)
 
     (max,coordinate)
 
+let maxLikelihood matrix =
+    compLikelihood matrix (fun a b -> a > b)
+
+let minLikelihood matrix = 
+    compLikelihood matrix (fun a b -> a < b)
 let fourDArrayMap (matrix: float [] [] [] []) f = 
     Array.map (fun i2 -> Array.map (fun i1 -> Array.map (fun i0 -> Array.map f i0) i1) i2) matrix
 
