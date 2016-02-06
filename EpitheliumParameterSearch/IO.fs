@@ -15,3 +15,4 @@ let retrieveSearch (filename: string) =
     let bf = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter()
     let result = bf.Deserialize(fileStream)
     (result :?> Types.parameterSearch)
+    ()

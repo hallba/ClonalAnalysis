@@ -58,8 +58,8 @@ let twoDArrayToGnuplot matrix filename text =
     file.WriteLine("$map1 << EOD")
     file.WriteLine(twoDArrayToString matrix)
     file.WriteLine("EOD")
-    file.Close
-
+    file.Close()
+    ()
 
 let twoDArrayToXfarbe matrix filename (title: string option) = 
     use file = new StreamWriter(filename, false)
@@ -71,7 +71,8 @@ let twoDArrayToXfarbe matrix filename (title: string option) =
             )
     file.WriteLine(sprintf "%A %A" xL yL)
     file.WriteLine(twoDArrayToString matrix)
-    file.Close
+    file.Close()
+    ()
 
 let projectDeltaXRho (likelihoodMatrix:float [] [] [] []) = 
     let dL = Array.length likelihoodMatrix
