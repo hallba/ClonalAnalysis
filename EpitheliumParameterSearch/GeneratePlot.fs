@@ -40,6 +40,27 @@ let minLikelihood matrix =
 let fourDArrayMap (matrix: float [] [] [] []) f = 
     Array.map (fun i2 -> Array.map (fun i1 -> Array.map (fun i0 -> Array.map f i0) i1) i2) matrix
 
+type heatmapText = {    scaleName:  string
+                        title:      string
+                        colorMap:   string option
+                        }
+
+let twoDArrayToGnuplot matrix filename text =
+    use file = new StreamWriter(filename, false)
+    file.WriteLine(sprintf "set title %A" text.title)
+    file.WriteLine("unset key")
+    file.WriteLine("set tic scale 0")
+    ignore( 
+        match text.colorMap with
+        | None -> file.WriteLine("set palette defined (0 0 0 0, 1 0.5 0 0, 2 1 0 0, 3 1 0.5 0, 4 1 1 0, 5 1 1 1)") 
+        | Some(p) -> file.WriteLine(sprintf "set palette defined %A" p)
+        )
+    file.WriteLine("$map1 << EOD")
+    file.WriteLine(twoDArrayToString matrix)
+    file.WriteLine("EOD")
+    file.Close
+
+
 let twoDArrayToXfarbe matrix filename (title: string option) = 
     use file = new StreamWriter(filename, false)
     let xL = Array.length matrix
