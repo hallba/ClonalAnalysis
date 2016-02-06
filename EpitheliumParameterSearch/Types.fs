@@ -1,6 +1,7 @@
 ﻿module Types
 
 open MathNet.Numerics
+open System
 
 [<Measure>]
 type cell
@@ -19,6 +20,7 @@ type scanResults       = {  cloneSizeMatrix:  float [] [] [] [] [] []  // delta 
                             oneDimSurvMatrix: float [] 
                             }
 
+[<Serializable>]
 type parameterSearch = {    rhoRange:       float array
                             rRange:         float<probability> array
                             lambdaRange:    float<cell/week> array
