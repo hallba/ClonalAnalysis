@@ -51,6 +51,11 @@ let probabilityCloneSurvival (inputParameters: Types.parameterSet) =
     //printf "P: %A\n" p
     //The following line checks for "pathological points" as described in the original matlab implementation. Note that, following the matlab code, this is a different transformation than before
     //The below could give an infinite loop...
+
+    //BH- testing with 
+    //      CalculateProbability.parameterSearch {TestData.kasumip53 with deltaRange=Types.Zero} CalculateProbability.Analysis
+    //Shows that p>1 is being added to the survival matrix. This has been missed here (presumably as it only tries to correct once)
+    //Fix by making a recursive loop with a max attempts?
     if p.r < 0. || p.r > 1. || System.Double.IsNaN(p.r) || System.Double.IsInfinity(p.r) then ((complex 1. 0.) - F (complex 0. 0.) (complex 0. 0.) (T*1.<Types.cell^-1>) ((inputParameters.r*1.<Types.probability^-1>)+0.00001) (gamma+0.00001)) else p
 
 let complexSum c =
