@@ -1,5 +1,8 @@
 ﻿module IO
 
+open MathNet.Numerics.LinearAlgebra
+open MathNet.Numerics.Data.Matlab
+
 let storeSearch (filename: string) (search: Types.parameterSearch) = 
         use file = new System.IO.FileStream(filename, System.IO.FileMode.Create)
         let bf = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter()
@@ -14,5 +17,11 @@ let retrieveSearch (filename: string) =
     use fileStream = new System.IO.FileStream(filename, System.IO.FileMode.Open)
     let bf = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter()
     let result = bf.Deserialize(fileStream)
+    fileStream.Close()
     (result :?> Types.parameterSearch)
+
+//Get data from a matlab generated matrix
+let importMatlab (filename: string) = 
+    use fileStream = new System.IO.FileStream(filename, System.IO.FileMode.Open)
+    let m = MatlabReader.ReadAll filename
     ()
