@@ -38,6 +38,10 @@
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="BigRationalLibrary">
+      <HintPath>..\packages\BigRationalLibrary.1.0.0.0\lib\NETFramework40\BigRationalLibrary.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="DynamicInterop">
       <HintPath>..\packages\DynamicInterop.0.7.4\lib\net40\DynamicInterop.dll</HintPath>
       <Private>True</Private>
@@ -58,6 +62,10 @@
       <HintPath>..\packages\MathNet.Numerics.3.5.0\lib\net40\MathNet.Numerics.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="MathNet.Numerics.Data.Matlab">
+      <HintPath>..\packages\MathNet.Numerics.Data.Matlab.3.1.1\lib\net40\MathNet.Numerics.Data.Matlab.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="MathNet.Numerics.FSharp">
       <HintPath>..\packages\MathNet.Numerics.FSharp.3.5.0\lib\net40\MathNet.Numerics.FSharp.dll</HintPath>
       <Private>True</Private>
@@ -68,9 +76,22 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="HiPrecision.fs" />
+    <Compile Include="Gamma.fs" />
     <Compile Include="Kummer.fs" />
     <Compile Include="Whittaker.fs" />
-    <Compile Include="CloneSizeDistribution.fs" />
+    <Compile Include="Parallel.fs" />
+    <Compile Include="Types.fs" />
+    <Compile Include="IO.fs" />
+    <Compile Include="SimulationCloneSizeDistribution.fs" />
+    <Compile Include="AnalyticalCloneSizeDistribution.fs" />
+    <Compile Include="CalculateProbability.fs" />
+    <Compile Include="CalculateLikelihood.fs" />
+    <Compile Include="GeneratePlot.fs" />
+    <Compile Include="TestData.fs" />
+    <Compile Include="Test.fs" />
+    <Compile Include="AnalyseLikelihood.fs" />
+    <None Include="FSIHelper.fsx" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />
     <None Include="packages.config" />
