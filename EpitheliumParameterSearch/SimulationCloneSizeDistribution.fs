@@ -25,6 +25,7 @@ type clone = {  state   : populationState;
                 rho     : float;
                 r       : float;
                 delta   : float;
+                SBRatio : float;
                 rng     : System.Random
                 maxN    : int; //Maximum *requested* number of cells
                 reporting   : reportStyle
@@ -33,6 +34,7 @@ type clone = {  state   : populationState;
                 }
                 with
                 member this.gamma = this.lambda * this.rho / (1. - this.rho)
+                member this.mu = this.gamma/this.SBRatio
                 member this.eventRate = this.lambda * float(this.state.population.A) * 1.<Types.cell> + this.gamma * float(this.state.population.B) * 1.<Types.cell>
                 member this.pAA =   this.r*(1.+this.delta)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.eventRate
                 member this.pAB =   (1.-2.*this.r)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.eventRate
