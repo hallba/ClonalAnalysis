@@ -98,6 +98,7 @@ let initClone = {   state = {   population = {  A = 1<Types.cell>
                     delta = 0.
                     maxN = 10
                     rng = System.Random()
+                    SBRatio = 0.27 //100 B : 19 SB1 : 8 SB2
                     reporting = Regular({timeLimit=200.<Types.week>;frequency=4.<Types.week>;lastReport=0.<Types.week>})
                     report = None 
                     finalState = None}
