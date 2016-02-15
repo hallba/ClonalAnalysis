@@ -59,7 +59,7 @@ type clone = {  state   : populationState;
                     else if random < this.pAA + this.pAB + this.pBB + this.pB2C then {this.state.population with B=this.state.population.B-1<Types.cell>;C=this.state.population.C+1<Types.cell>}
                     //Shedding
                     else {this.state.population with C=this.state.population.C-1<Types.cell>}
-                member this.update =    //If the system has run out of stem cells, just update the final state and return the clone
+                member this.update =    //If the system has run out of cells, just update the final state and return the clone
                     match (this.finalState,this.reporting) with
                     | (None,Regular(r)) ->
                         //Skip an update step but convert the clone into a specified times
@@ -79,7 +79,7 @@ type clone = {  state   : populationState;
                                             | [] -> None
                                             | _ -> Some(report')
                             let population' = this.selectEvent
-                            if population'.basal > 0<Types.cell> then {this with state = {population = population'; time = time'} ; reporting=Specified(l') ; report = report' }
+                            if (population'.basal+population'.suprabasal) > 0<Types.cell> then {this with state = {population = population'; time = time'} ; reporting=Specified(l') ; report = report' }
                             else
                                 {this with state = {population = population'; time = time'} ; reporting=Specified(l') ; report = report' ; finalState = Some({time=time'; population=population'}) }
                     | (Some(state),Specified(l)) -> 
@@ -100,7 +100,7 @@ let initClone = {   state = {   population = {  A = 1<Types.cell>
                     r = 0.15
                     delta = 0.
                     maxN = 10
-                    rng = System.Random()
+                    rng = System.Random(1982) //Specified a seed to make testing possible
                     SBRatio = 0.27 //100 B : 19 SB1 : 8 SB2
                     reporting = Regular({timeLimit=200.<Types.week>;frequency=4.<Types.week>;lastReport=0.<Types.week>})
                     report = None 
