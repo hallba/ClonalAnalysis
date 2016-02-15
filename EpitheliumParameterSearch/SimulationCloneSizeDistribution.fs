@@ -33,13 +33,14 @@ type clone = {  state   : populationState;
                 finalState : populationState option
                 }
                 with
-                member this.gamma = this.lambda * this.rho / (1. - this.rho)
-                member this.mu = this.gamma/this.SBRatio
-                member this.eventRate = this.lambda * float(this.state.population.A) * 1.<Types.cell> + this.gamma * float(this.state.population.B) * 1.<Types.cell>
+                member this.gamma = this.lambda * this.rho / (1. - this.rho) //Rate of B->C
+                member this.mu = this.gamma/this.SBRatio //Rate of C loss
+                member this.eventRate = this.lambda * float(this.state.population.A) * 1.<Types.cell> + this.gamma * float(this.state.population.B) * 1.<Types.cell> + this.mu * float(this.state.population.C) * 1.<Types.cell>
                 member this.pAA =   this.r*(1.+this.delta)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.eventRate
                 member this.pAB =   (1.-2.*this.r)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.eventRate
                 member this.pBB =   this.r*(1.-this.delta)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.eventRate
                 member this.pB2C =  float(this.state.population.B)*1.<Types.cell>*this.gamma/this.eventRate
+                member this.pCExit = float(this.state.population.C)*1.<Types.cell>*this.mu/this.eventRate
                 member private this.recordPreviousStates reportTimes currentTime =
                     let rec core reportTimes currentTime acc = 
                         match reportTimes with
@@ -55,7 +56,9 @@ type clone = {  state   : populationState;
                     //BB
                     else if random < this.pAA + this.pAB + this.pBB then {this.state.population with A=this.state.population.A-1<Types.cell>;B=this.state.population.B+2<Types.cell>}
                     //Migration
-                    else {this.state.population with B=this.state.population.B-1<Types.cell>;C=this.state.population.C+1<Types.cell>}
+                    else if random < this.pAA + this.pAB + this.pBB + this.pB2C then {this.state.population with B=this.state.population.B-1<Types.cell>;C=this.state.population.C+1<Types.cell>}
+                    //Shedding
+                    else {this.state.population with C=this.state.population.C-1<Types.cell>}
                 member this.update =    //If the system has run out of stem cells, just update the final state and return the clone
                     match (this.finalState,this.reporting) with
                     | (None,Regular(r)) ->
