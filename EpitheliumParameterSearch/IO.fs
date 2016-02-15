@@ -22,7 +22,26 @@ let retrieveSearch (filename: string) =
 
 //Get data from a matlab generated matrix
 let importMatlab (filename: string) = 
-    //use fileStream = new System.IO.FileStream(filename, System.IO.FileMode.Open)
+    
+    let matrixToArray1D (m:Matrix<float>) = 
+        let l = Matrix.columnCount m
+        Array.init l (fun i -> m.[0,i])
+
+    let matrixToArray4D (m:Matrix<float>) = 
+        ()
+
     let m = (MatlabReader.ReadAll<float>(filename,"rhoRange","lambdaRange","rRange","PScanPP","PSurvScanPP","t","tExp","timePoints") ) // :?> System.Collections.Generic.Dictionary< string, Matrix<float> > 
-    //fileStream.Close()
+    
+    let rRange = m.["rRange"] |> matrixToArray1D
+    let lambdaRange = m.["lambdaRange"] |> matrixToArray1D
+    let rhoRange = m.["rhoRange"] |> matrixToArray1D
+    let t = m.["t"] |> matrixToArray1D
+    let tExp = m.["tExp"] |> matrixToArray1D
+    let timePoints = m.["timePoints"] |> matrixToArray1D
+    
+    let l = MatlabReader.List(filename)
+
+    //This will never work because MathNet matrices are 2D :(
+
+
     m
