@@ -66,6 +66,7 @@ type clone = {  state   : populationState;
                         let timings = List.init (int(r.timeLimit/r.frequency)) (fun i -> float(i+1)*r.frequency)
                         {this with reporting=Specified(timings)}
                     | (Some(finalState),Regular(r)) -> 
+                        //Regular reporting events are converted to Specified so this should never arise
                         failwith "Regular reporting should never report a final state"
                     | (None,Specified(l)) -> 
                         match l with
@@ -79,10 +80,12 @@ type clone = {  state   : populationState;
                                             | [] -> None
                                             | _ -> Some(report')
                             let population' = this.selectEvent
+                            //Simulation finished condition- if there are no more cells, report the final state else continue
                             if (population'.basal+population'.suprabasal) > 0<Types.cell> then {this with state = {population = population'; time = time'} ; reporting=Specified(l') ; report = report' }
                             else
                                 {this with state = {population = population'; time = time'} ; reporting=Specified(l') ; report = report' ; finalState = Some({time=time'; population=population'}) }
                     | (Some(state),Specified(l)) -> 
+                        //This should only be called if a simulation has completed but further reports are still required
                         match l with
                         | [] -> failwith "Cannot extend a completed simulation trace"
                         | nextReport::later ->
