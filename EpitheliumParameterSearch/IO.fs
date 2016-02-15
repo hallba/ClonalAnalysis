@@ -22,6 +22,7 @@ let retrieveSearch (filename: string) =
 
 //Get data from a matlab generated matrix
 let importMatlab (filename: string) = 
-    use fileStream = new System.IO.FileStream(filename, System.IO.FileMode.Open)
-    let m = MatlabReader.ReadAll filename
-    ()
+    //use fileStream = new System.IO.FileStream(filename, System.IO.FileMode.Open)
+    let m = (MatlabReader.ReadAll<float>(filename,"rhoRange","lambdaRange","rRange","PScanPP","PSurvScanPP","t","tExp","timePoints") ) // :?> System.Collections.Generic.Dictionary< string, Matrix<float> > 
+    //fileStream.Close()
+    m
