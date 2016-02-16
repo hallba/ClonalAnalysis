@@ -25,7 +25,7 @@ type clone = {  state   : populationState;
                 rho     : float;
                 r       : float;
                 delta   : float;
-                SBRatio : float;
+                SBRatio : float option;
                 rng     : System.Random
                 maxN    : int; //Maximum *requested* number of cells
                 reporting   : reportStyle
@@ -34,13 +34,21 @@ type clone = {  state   : populationState;
                 }
                 with
                 member this.gamma = this.lambda * this.rho / (1. - this.rho) //Rate of B->C
-                member this.mu = this.gamma/this.SBRatio //Rate of C loss
+                member this.mu = match this.SBRatio with
+                                 | Some(r) -> this.gamma/r //Rate of C loss
+                                 | None -> 0.<Types.cell/Types.week> //If we aren't interested in SB cells we can pass Nne and ignore mu's contribution
                 member this.eventRate = this.lambda * float(this.state.population.A) * 1.<Types.cell> + this.gamma * float(this.state.population.B) * 1.<Types.cell> + this.mu * float(this.state.population.C) * 1.<Types.cell>
                 member this.pAA =   this.r*(1.+this.delta)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.eventRate
                 member this.pAB =   (1.-2.*this.r)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.eventRate
                 member this.pBB =   this.r*(1.-this.delta)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.eventRate
                 member this.pB2C =  float(this.state.population.B)*1.<Types.cell>*this.gamma/this.eventRate
                 member this.pCExit = float(this.state.population.C)*1.<Types.cell>*this.mu/this.eventRate
+
+                member this.finishedCondition (p:cellPopulation) = 
+                    match this.SBRatio with 
+                    | Some(_) -> (p.basal+p.suprabasal) > 0<Types.cell>
+                    | None -> p.basal > 0<Types.cell>
+
                 member private this.recordPreviousStates reportTimes currentTime =
                     let rec core reportTimes currentTime acc = 
                         match reportTimes with
@@ -81,7 +89,7 @@ type clone = {  state   : populationState;
                                             | _ -> Some(report')
                             let population' = this.selectEvent
                             //Simulation finished condition- if there are no more cells, report the final state else continue
-                            if (population'.basal+population'.suprabasal) > 0<Types.cell> then {this with state = {population = population'; time = time'} ; reporting=Specified(l') ; report = report' }
+                            if this.finishedCondition population' then {this with state = {population = population'; time = time'} ; reporting=Specified(l') ; report = report' }
                             else
                                 {this with state = {population = population'; time = time'} ; reporting=Specified(l') ; report = report' ; finalState = Some({time=time'; population=population'}) }
                     | (Some(state),Specified(l)) -> 
@@ -104,7 +112,7 @@ let initClone = {   state = {   population = {  A = 1<Types.cell>
                     delta = 0.
                     maxN = 10
                     rng = System.Random(1982) //Specified a seed to make testing possible
-                    SBRatio = 0.27 //100 B : 19 SB1 : 8 SB2
+                    SBRatio = None //Some(0.27) //100 B : 19 SB1 : 8 SB2
                     reporting = Regular({timeLimit=200.<Types.week>;frequency=4.<Types.week>;lastReport=0.<Types.week>})
                     report = None 
                     finalState = None}
