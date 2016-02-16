@@ -17,6 +17,11 @@ let retrieveSearch (filename: string) =
     fileStream.Close()
     (result :?> Types.parameterSearch)
 
+let rec totalElements d acc = 
+    match d with 
+    | [] -> acc
+    | topD::rest -> totalElements rest (acc*topD)
+
 //Get data from a matlab generated matrix
 let importMatlab (filename: string) = 
 
@@ -31,18 +36,18 @@ let importMatlab (filename: string) =
     //readNd - Read a multidimensional matrix from an open matlab file and return an array of arrays (of arrays of arrays...)
     let readNd name (dimensions:int list) = 
         let r = m.Content.[name] :?> csmatio.types.MLDouble
-
-        //First- read all of the values into a 1D array
-        let rec totalElements d acc = 
-            match d with 
-            | [] -> acc
-            | topD::rest -> totalElements rest (acc*topD)
-        
         Array.init (totalElements dimensions 1) (fun i -> r.Get(i))
 
     let readCells name = 
         let r = m.Content.[name] :?> csmatio.types.MLCell
         Array.init r.Size (fun i -> (r.Cells.[i] :?> csmatio.types.MLDouble).GetArray())
+
+    let readJaggedNd name (commonDimensions:int list) lastDimensionLengths =
+        let r = m.Content.[name] :?> csmatio.types.MLDouble
+        let commonSize = (totalElements commonDimensions 1) 
+        let totalSize = Array.map (fun i -> i * commonSize) lastDimensionLengths
+                        |> Array.sum 
+        Array.init commonSize ( fun i -> [|0.|] )
 
     let rRange = read1d "rRange" |> Array.map (fun i -> i*1.<Types.probability>)
     let lambdaRange = read1d "lambdaRange" |> Array.map (fun i -> i*1.<Types.cell/Types.week>)
@@ -62,7 +67,8 @@ let importMatlab (filename: string) =
                     Types.excludeOnes=true
                     }
 
-    let cloneSizeP = readNd "PScanPP"  [(Array.length lambdaRange);(Array.length rhoRange);(Array.length rRange);(Array.length t)] //This is a problem- n is of variable length
+    let cloneSizeP1D = readNd "PScanPP"  [(Array.length lambdaRange);(Array.length rhoRange);(Array.length rRange);(Array.length t);maxN]
+    let cloneSizeP = Array.init ((Array.length lambdaRange)*(Array.length rhoRange)*(Array.length rRange)*(Array.length t)) (fun i -> [|0.|])
     let survivalP  = readNd "PSurvScanPP" [(Array.length lambdaRange);(Array.length rhoRange);(Array.length rRange);(Array.length t)]
 
     Types.restructureParameterSet input survivalP cloneSizeP
