@@ -42,6 +42,10 @@
       <HintPath>..\packages\BigRationalLibrary.1.0.0.0\lib\NETFramework40\BigRationalLibrary.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="csmatio">
+      <HintPath>..\packages\CSMatIO.1.0.2\lib\net45\CSMatIO.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="DynamicInterop">
       <HintPath>..\packages\DynamicInterop.0.7.4\lib\net40\DynamicInterop.dll</HintPath>
       <Private>True</Private>
@@ -74,6 +78,10 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
+    <Reference Include="zlib.net">
+      <HintPath>..\packages\zlib.net.1.0.4.0\lib\zlib.net.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="HiPrecision.fs" />
