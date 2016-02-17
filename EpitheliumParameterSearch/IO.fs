@@ -34,17 +34,17 @@ let importMatlab (filename: string) =
         i.[0]
 
     //readNd - Read a multidimensional matrix from an open matlab file and return an array of arrays (of arrays of arrays...)
-    let readNd name (dimensions:int list) = 
-        //Not clear how to write arbitrary dimensions
-        let r = m.Content.[name] :?> csmatio.types.MLDouble
-        //This is ordered in the opposite way from previous 1D arrays in this code. 
-        let data = Array.init (totalElements dimensions 1) (fun i -> r.Get(i))
-        let rec core dim acc f =
-            match dim with
-            | [] -> acc
-            | topD::tail -> let acc' = Array.init topD 
-                            core tail (acc acc')
-        data
+//    let readNd name (dimensions:int list) = 
+//        //Not clear how to write arbitrary dimensions
+//        let r = m.Content.[name] :?> csmatio.types.MLDouble
+//        //This is ordered in the opposite way from previous 1D arrays in this code. 
+//        let data = Array.init (totalElements dimensions 1) (fun i -> r.Get(i))
+//        let rec core dim acc f =
+//            match dim with
+//            | [] -> acc
+//            | topD::tail -> let acc' = Array.init topD 
+//                            core tail (acc acc')
+//        data
 
     let read4d name (dimensions:int list) = 
         if List.length dimensions <> 4 then failwith "read4d requires 4 dimensions"
