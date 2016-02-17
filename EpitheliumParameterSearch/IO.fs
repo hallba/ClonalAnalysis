@@ -36,6 +36,7 @@ let importMatlab (filename: string) =
     //readNd - Read a multidimensional matrix from an open matlab file and return an array of arrays (of arrays of arrays...)
     let readNd name (dimensions:int list) = 
         let r = m.Content.[name] :?> csmatio.types.MLDouble
+        //This is ordered in the opposite way from previous 1D arrays in this code. 
         Array.init (totalElements dimensions 1) (fun i -> r.Get(i))
 
     let readCells name = 
