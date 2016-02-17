@@ -35,20 +35,49 @@ let importMatlab (filename: string) =
 
     //readNd - Read a multidimensional matrix from an open matlab file and return an array of arrays (of arrays of arrays...)
     let readNd name (dimensions:int list) = 
+        //Not clear how to write arbitrary dimensions
         let r = m.Content.[name] :?> csmatio.types.MLDouble
         //This is ordered in the opposite way from previous 1D arrays in this code. 
-        Array.init (totalElements dimensions 1) (fun i -> r.Get(i))
+        let data = Array.init (totalElements dimensions 1) (fun i -> r.Get(i))
+        let rec core dim acc f =
+            match dim with
+            | [] -> acc
+            | topD::tail -> let acc' = Array.init topD 
+                            core tail (acc acc')
+        data
 
+    let read4d name (dimensions:int list) = 
+        if List.length dimensions <> 4 then failwith "read4d requires 4 dimensions"
+        let r = m.Content.[name] :?> csmatio.types.MLDouble
+        //This is ordered in the opposite way from previous 1D arrays in this code. 
+        let data = Array.init (totalElements dimensions 1) (fun i -> r.Get(i))
+        
+        let dataResult = Array.init dimensions.[0] (
+                            fun i -> (Array.init dimensions.[1] (
+                                fun j -> (Array.init dimensions.[2] (
+                                    fun k -> (Array.init dimensions.[3] (
+                                        fun l -> data.[i+dimensions.[0]*j+dimensions.[1]*dimensions.[0]*k+dimensions.[2]*dimensions.[1]*dimensions.[0]*l] ) ) ) ) ) ) )
+
+        dataResult
+
+    let read5d name (dimensions:int list) = 
+        if List.length dimensions <> 5 then failwith "read5d requires 5 dimensions"
+        let r = m.Content.[name] :?> csmatio.types.MLDouble
+        //This is ordered in the opposite way from previous 1D arrays in this code. 
+        let data = Array.init (totalElements dimensions 1) (fun i -> r.Get(i))
+        
+        let dataResult = Array.init dimensions.[0] (
+                            fun i -> (Array.init dimensions.[1] (
+                                fun j -> (Array.init dimensions.[2] (
+                                    fun k -> (Array.init dimensions.[3] (
+                                        fun l -> (Array.init dimensions.[4] (
+                                            fun m -> data.[i+dimensions.[0]*j+dimensions.[1]*dimensions.[0]*k+dimensions.[2]*dimensions.[1]*dimensions.[0]*l+dimensions.[3]*dimensions.[2]*dimensions.[1]*dimensions.[0]*m] ) ) ) ) ) ) ) ) )
+
+        dataResult
+        
     let readCells name = 
         let r = m.Content.[name] :?> csmatio.types.MLCell
         Array.init r.Size (fun i -> (r.Cells.[i] :?> csmatio.types.MLDouble).GetArray())
-
-    let readJaggedNd name (commonDimensions:int list) lastDimensionLengths =
-        let r = m.Content.[name] :?> csmatio.types.MLDouble
-        let commonSize = (totalElements commonDimensions 1) 
-        let totalSize = Array.map (fun i -> i * commonSize) lastDimensionLengths
-                        |> Array.sum 
-        Array.init commonSize ( fun i -> [|0.|] )
 
     let rRange = read1d "rRange" |> Array.map (fun i -> i*1.<Types.probability>)
     let lambdaRange = read1d "lambdaRange" |> Array.map (fun i -> i*1.<Types.cell/Types.week>)
@@ -68,12 +97,25 @@ let importMatlab (filename: string) =
                     Types.excludeOnes=true
                     }
 
-    let cloneSizeP1D = readNd "PScanPP"  [(Array.length lambdaRange);(Array.length rhoRange);(Array.length rRange);(Array.length t);maxN]
-    let cloneSizeP = Array.init ((Array.length lambdaRange)*(Array.length rhoRange)*(Array.length rRange)*(Array.length t)) (fun i -> [|0.|])
-    let survivalP  = readNd "PSurvScanPP" [(Array.length lambdaRange);(Array.length rhoRange);(Array.length rRange);(Array.length t)]
+    let cloneSizeP = read5d "PScanPP"  [(Array.length lambdaRange);(Array.length rhoRange);(Array.length rRange);(Array.length t);maxN]
+    let survivalP  = read4d "PSurvScanPP" [(Array.length lambdaRange);(Array.length rhoRange);(Array.length rRange);(Array.length t)]
 
-    Types.restructureParameterSet input survivalP cloneSizeP
-
+    let result = {  Types.cloneSizeMatrix = [|cloneSizeP|]
+                    Types.survivalMatrix =  [|survivalP|]
+                    Types.oneDimSizeMatrix = [||] //We don't bother calculating these at present
+                    Types.oneDimSurvMatrix = [||]
+                    }
+    //Return a complete parametersearch result
+    {   
+        Types.lambdaRange = lambdaRange
+        Types.rRange = rRange
+        Types.rhoRange = rhoRange
+        Types.timePoints = t
+        Types.excludeOnes = true
+        Types.maxN = maxN
+        Types.deltaRange = Types.Zero
+        Types.results = Some(result)
+        }
     //could also read maxN and nBadvalues
 
 //    let scanMatD = ([lambdaRange;rhoRange;rRange;t;nRange] |> List.map (fun i -> Array.length i))
