@@ -18,6 +18,13 @@ type regularReporting =
                     lastReport  :   float<Types.week>
                 }
 
+
+type randomBasal =
+            {       time: float<Types.week>;
+                    basalSum: int<Types.cell> array;
+                    animalID:int;
+            }
+
 type reportStyle = Regular of regularReporting | Specified of float<Types.week> list
 
 type clone = {  state   : populationState;
@@ -189,11 +196,14 @@ let forceArrayLength n instance =
 let enforceMax n probabilities =
     List.map (fun instance -> forceArrayLength n instance ) probabilities
 
+
+
 let cloneProbability number (clone:clone)=
     let observations =  match clone.reporting with
                         | Specified(l)  -> List.map (fun time -> {noObservations with time=time}) ((0.<Types.week>)::l)
                         | Regular(r)    -> List.init (int(r.timeLimit/r.frequency)+1) (fun i -> {noObservations with time=float(i)*r.frequency} )
     let sims = Array.init number (fun i -> simulate {clone with rng=System.Random(i)})
+
     sims 
     |> Array.fold (fun observations simulation -> List.map2 (fun (o: cloneSizeDistribution) s -> o.add s.population) observations simulation ) observations
     |> List.map (fun timePoint -> timePoint.normalise)
@@ -205,4 +215,86 @@ let cloneProbability number (clone:clone)=
         | [] -> failwith "No datapoints created!"
         | initPoint::rest -> rest //Discard t0 
         )
+
+
+let summarizeObservations (allBasalSums: randomBasal [] ) =
+
+    let outputFile = @"//your/path/to/output/file.txt"
+    let summary = 
+      [| for i in allBasalSums ->
+            let daytime = int (i.time * 7.0)
+            let timeStr = "tExp(k) = "+daytime.ToString()+"/7"
+            let animalIDStr = "% "+daytime.ToString()+" days, mouse"+ i.animalID.ToString()
+            let max = i.basalSum |> Seq.max   //maximum cell numbers observed
+            let res = i.basalSum |> Seq.filter (fun x-> int(x) <> 0)    // discard zero observations
+                                 |> Seq.countBy (fun x-> x)
+                                 |> Seq.toList
+                                 |> List.sort
+
+            let occs = Array.init (int(max)) (fun x-> x+1)
+
+            let obsSummary = 
+                occs 
+                |> Array.map (fun oc -> 
+                    res
+                    |>List.filter (fun (f,s)-> oc = (int)f))
+                    |>Array.mapi (fun i el ->
+                        match el with
+                        | [] -> sprintf "%A %A" occs.[i] 0
+                        | _ -> sprintf "%A" el
+                        )
+          
+            Array.concat [| [|animalIDStr|]; [|"k=k+1"|]; [|timeStr|]; [|"data{k} = ..."|]; obsSummary; [|"\n"|] |]
+             |]
+        |> Array.concat
+        
+    summary|> (fun s -> System.IO.File.AppendAllLines(outputFile, s))
+                                          
+    summary
+   
+
+let getRandomBasal numberOfSims cloneNumberPerAnimal (clone:clone)=
+    
+    let observations =  match clone.reporting with
+                        | Specified(l)  -> List.map (fun time -> {noObservations with time=time}) ((0.<Types.week>)::l)
+                        | Regular(r)    -> List.init (int(r.timeLimit/r.frequency)+1) (fun i -> {noObservations with time=float(i)*r.frequency} )
+    let sims = Array.init numberOfSims (fun i -> simulate {clone with rng=System.Random(i)})
+    
+    let rnd = new System.Random()
+    let numberOfTimepoints = sims.[0].Length;
+    let animals = 4 //introducing 4 different animals to mimic the experimental data
+
+    let getBasalSum timepoint id  = 
+       let i = timepoint + 1
+       let animalID = id + 1
+
+       let allClonesPerTimepoint = sims|>Array.map (fun el->el.[i])
+       let timepoint = allClonesPerTimepoint.[0].time
+
+       let randomIndices = Array.init cloneNumberPerAnimal (fun _ -> rnd.Next(allClonesPerTimepoint.Length))
+       let bs = Array.map (fun x -> allClonesPerTimepoint.[x].population.basal) randomIndices   //get the number of basal cells at each random position
+
+       let rb = {time=timepoint; basalSum=bs; animalID=animalID}  
+       rb
+
+    let allBasalSums = 
+        Array.init (numberOfTimepoints-1) ( fun i ->
+           Array.init animals (fun id -> getBasalSum i id) // group to 4 animal ids of equal number of elements
+                |>summarizeObservations)
+
+    allBasalSums   
+
+
+let createSyntheticDataset parameterSets numberOfSims cloneNumberPerAnimal =
+
+    let completeSet = Types.createParameterSet {parameterSets with timePoints=[|0.<Types.week>|]}  
+    let allRandomBasalSums = 
+        Array.map (fun input ->     //parallel causes issues in printing
+            input 
+            |> parameterSetToClone (Specified(List.ofArray parameterSets.timePoints))
+            |> getRandomBasal numberOfSims cloneNumberPerAnimal
+        ) completeSet
+
+    allRandomBasalSums //|> printfn "%A" 
+  
 
