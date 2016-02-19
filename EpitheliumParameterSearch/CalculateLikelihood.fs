@@ -40,14 +40,16 @@ let normaliseTimePointsForSurvival excludeOnes (cloneSizes: float [] []) surviva
     Array.map2 (fun numberPatT survivalPatT -> Array.mapi (fun index specificNumberPatT -> if excludeOnes && index = 0 then 0. else specificNumberPatT/survivalPatT) numberPatT) cloneSizes survival'
 
 let extrapolateZeroProbabilities p =
-    if not (Array.exists2 (fun i index -> i=0. && index <> 0) p (Array.init (Array.length p) (fun i -> i)) ) then p else
+    //pComplete is both the indices and the probabilities, stored as an array of tuples
+    let pComplete = Array.mapi (fun index element -> (index,element) ) p
+    if not (Array.exists (fun (index,element) -> element=0. && index <> 0) pComplete ) then p else
         //This is to replace the function from the previous implementation (see estimateZeroP)
         //This accepts an array of floats, finds the first zero and replaces all future values on 
         //the basis of an extrapolation from *at least* the last two good points
 
         //The value must never become 0. as a log is ultimately applied
         //To avoid this p hits a minimum it becomes the smallest possible double- 4.940656458e-324
-        let i0 = ( Array.findIndex (fun i -> i=0.) p ) - 1
+        let i0 = ( Array.findIndex (fun (index,element) -> element=0. && index <> 0) pComplete ) - 1
 
         //printf "i0 = %A\n" i0
         //printf "%A %A %A %A -> i=%A\n" a b c d i0
