@@ -5,15 +5,16 @@ open MathNet.Numerics
 type dataCompleteness = All | ExcludeOnes
 
 let logFactorial i =
-    //Returns log(i!) in base e
+    //Returns log(i!) in base 10 (for consistency with matlab)
     let rec core i acc =
         if i > 0 then core (i-1) (log(float(i)) + acc) else acc/log(10.)
-    core i 0.
+    if i > 0 then core i 0. else 0.
 
 type experimentalDataPoint = {  time: float<Types.week>
                                 cloneSize: int []
                                 } with 
-                                member this.regularise =  ( logFactorial (Array.sum this.cloneSize) - Array.sum (Array.map (fun size -> if size = 0 then 0. else logFactorial size) this.cloneSize) )
+                                //NB this returns a result in natural log- but intentionally includes a bug from the matlab code to aid direct comparison
+                                member this.regularise =  ( logFactorial (Array.sum this.cloneSize) - Array.sum (Array.map (fun size -> logFactorial size) this.cloneSize) ) / log(10.)
                                 member this.indices =   this.cloneSize
                                                         |> Array.mapi ( fun i o -> (i,o) )
                                                         |> Array.filter ( fun b -> snd(b) > 0 )
