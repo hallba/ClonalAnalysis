@@ -121,6 +121,17 @@ let kasumiWTDatum = [
                     }
                     ]
 
+let kasumiWTDatum2= [
+                    {
+                    time=(11.<Types.week>/7.)
+                    cloneSize=[|50;2|]
+                    }
+                    {
+                    time=(11.<Types.week>/7.)
+                    cloneSize=[|83;12;1;1|]
+                    }
+                    ]
+
 let kasumiWTData = [
                     {
                     time=(11.<Types.week>/7.)
