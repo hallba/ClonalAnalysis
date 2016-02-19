@@ -33,8 +33,10 @@ let logLikelihood prob obs =
     Array.map2  (fun p o -> if o = 0 then 0. else log(p)*float(o) ) prob obs.cloneSize
     |> Array.fold (fun acc L -> L+acc ) obs.regularise
 
-let normaliseTimePointsForSurvival cloneSizes survival =
-    Array.map2 (fun nt st -> Array.map (fun nti -> nti/st) nt) cloneSizes survival
+let normaliseTimePointsForSurvival excludeOnes (cloneSizes: float [] []) survival =
+    //Exlude the probability of single cell clones
+    let survival' = if excludeOnes then Array.mapi (fun i f -> f - cloneSizes.[i].[0]) survival else survival 
+    Array.map2 (fun nt st -> Array.map (fun nti -> nti/st) nt) cloneSizes survival'
 
 let extrapolateZeroProbabilities p =
     if not (Array.exists (fun i -> i=0.) p) then p else
@@ -94,7 +96,7 @@ let getLikelihood data (search:Types.parameterSearch) =
                     | None -> failwith "Attempting to calculate a likelihood without having calculated a probability distribution"
                     | Some(res) -> res
     //Normalise count probabilities assuming survival & extrapolate values for "zero" probabilities
-    let P = Types.resultsMap2 normaliseTimePointsForSurvival results.cloneSizeMatrix results.survivalMatrix
+    let P = Types.resultsMap2 (normaliseTimePointsForSurvival search.excludeOnes) results.cloneSizeMatrix results.survivalMatrix 
             |> Types.resultsMap (fun pt -> Array.map (fun p -> extrapolateZeroProbabilities p) pt)
     let data = if search.excludeOnes then List.map (fun (point:experimentalDataPoint) -> point.excludeOnes) data else data
                |> List.map (fun (obs:experimentalDataPoint) -> obs.extend search.maxN) 
