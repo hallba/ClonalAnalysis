@@ -36,7 +36,7 @@ let logLikelihood prob obs =
 let normaliseTimePointsForSurvival excludeOnes (cloneSizes: float [] []) survival =
     //Exlude the probability of single cell clones
     let survival' = if excludeOnes then Array.mapi (fun i f -> f - cloneSizes.[i].[0]) survival else survival 
-    Array.map2 (fun nt st -> Array.map (fun nti -> nti/st) nt) cloneSizes survival'
+    Array.map2 (fun numberPatT survivalPatT -> Array.mapi (fun index specificNumberPatT -> if excludeOnes && index = 0 then 0. else specificNumberPatT/survivalPatT) numberPatT) cloneSizes survival'
 
 let extrapolateZeroProbabilities p =
     if not (Array.exists (fun i -> i=0.) p) then p else
