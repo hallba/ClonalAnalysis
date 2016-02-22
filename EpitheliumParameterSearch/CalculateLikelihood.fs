@@ -48,7 +48,7 @@ let extrapolateZeroProbabilities' excludeOnes p =
     let pI = Array.mapi (fun index element -> (index,element) ) p
     if (Array.filter (fun (i,e) -> ((excludeOnes && i <> 0) || not excludeOnes) && e = 0.) pI |> Array.length) = 0 then p else
         let i0 = (Array.findIndex (fun (i,e) -> i <> 0 && e=0.) pI) - 1
-        if i0 <= 7 then failwith("Too few zero probabilities to extrapolate safely") else
+        if i0 <= 7 then failwith("Too few non-zero probabilities to extrapolate safely") else
             let i1 = int(round(float(i0)*0.65))
             let i2 = int(round(float(i0)*0.75))
             let a1 = Array.init (i2-i1) (fun i -> p.[i1+i-1])
