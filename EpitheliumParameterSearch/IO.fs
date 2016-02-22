@@ -96,7 +96,7 @@ let importMatlab (filename: string) =
                     Types.results=None
                     Types.excludeOnes=true
                     Types.supraBasalFit=false
-                    Types.matlabReplicate=false
+                    Types.matlabReplicate=true
                     }
 
     let cloneSizeP = read5d "PScanPP"  [(Array.length lambdaRange);(Array.length rhoRange);(Array.length rRange);(Array.length t);maxN]
