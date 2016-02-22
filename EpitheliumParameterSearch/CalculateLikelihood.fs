@@ -13,7 +13,7 @@ let logFactorial i =
 type experimentalDataPoint = {  time: float<Types.week>
                                 cloneSize: int []
                                 } with 
-                                //NB this returns a result in natural log- but intentionally includes a bug from the matlab code to aid direct comparison
+                                //Returns logarithm in base 10 unless replicating matlab code- where it returns this log/ln(10)
                                 member this.regularise replicateMatlab =  
                                                     let result = ( logFactorial (Array.sum this.cloneSize) - Array.sum (Array.map (fun size -> logFactorial size) this.cloneSize) )
                                                     if replicateMatlab then result / log(10.) else result
