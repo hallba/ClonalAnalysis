@@ -11,6 +11,8 @@ let kasumiParameters =  {
                             Types.deltaRange    =   Types.Zero
                             Types.results       =   None
                             Types.excludeOnes   =   true
+                            Types.matlabReplicate = false
+                            Types.supraBasalFit = false
                             }
 
 let kasumip53 =  {
@@ -22,6 +24,8 @@ let kasumip53 =  {
                             Types.deltaRange    =   Types.Range(List.init 101 (fun i -> float(i)*0.01<Types.probability>) )
                             Types.results       =   None
                             Types.excludeOnes   =   true
+                            Types.matlabReplicate = false
+                            Types.supraBasalFit = false
                             }
 
 let kasumiCG = {
@@ -33,6 +37,8 @@ let kasumiCG = {
                             Types.deltaRange    =   Types.Zero
                             Types.results       =   None
                             Types.excludeOnes   =   true
+                            Types.matlabReplicate = false
+                            Types.supraBasalFit = false
                             }//200 =~ 30 mins Simulation
 
 let kasumiLocal =  {
@@ -44,6 +50,8 @@ let kasumiLocal =  {
                             Types.deltaRange    =   Types.Zero
                             Types.results       =   None
                             Types.excludeOnes   =   true
+                            Types.matlabReplicate = false
+                            Types.supraBasalFit = false
                             }
 
 let tinyScan = {
@@ -55,6 +63,8 @@ let tinyScan = {
                             Types.deltaRange    =   Types.Zero
                             Types.excludeOnes   =   true
                             Types.results       =   None
+                            Types.matlabReplicate = false
+                            Types.supraBasalFit = false
                 }
 
 let testClone = Types.testSystem |> SimulationCloneSizeDistribution.parameterSetToClone (SimulationCloneSizeDistribution.Specified([1.428571429<Types.week>;])) ;;

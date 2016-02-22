@@ -27,6 +27,8 @@ type parameterSearch = {    rhoRange:       float array
                             timePoints:     float<week> array
                             maxN:           int
                             deltaRange:     delta
+                            matlabReplicate:bool
+                            supraBasalFit:  bool
                             results:        scanResults option
                             excludeOnes:    bool
                             }

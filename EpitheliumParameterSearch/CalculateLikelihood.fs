@@ -14,7 +14,9 @@ type experimentalDataPoint = {  time: float<Types.week>
                                 cloneSize: int []
                                 } with 
                                 //NB this returns a result in natural log- but intentionally includes a bug from the matlab code to aid direct comparison
-                                member this.regularise =  ( logFactorial (Array.sum this.cloneSize) - Array.sum (Array.map (fun size -> logFactorial size) this.cloneSize) ) / log(10.)
+                                member this.regularise replicateMatlab =  
+                                                    let result = ( logFactorial (Array.sum this.cloneSize) - Array.sum (Array.map (fun size -> logFactorial size) this.cloneSize) )
+                                                    if replicateMatlab then result / log(10.) else result
                                 member this.indices =   this.cloneSize
                                                         |> Array.mapi ( fun i o -> (i,o) )
                                                         |> Array.filter ( fun b -> snd(b) > 0 )
@@ -30,9 +32,9 @@ type experimentalDataPoint = {  time: float<Types.week>
 let testSystem = {  time=(11.<Types.week>/7.) ;
                     cloneSize = [| 37;13;11;6;1;4;3;1;0;1;0;0;1;1;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1|] }
 
-let logLikelihood prob obs =
+let logLikelihood prob obs matlabReplicate =
     Array.map2  (fun p o -> if o = 0 then 0. else log(p)*float(o) ) prob obs.cloneSize
-    |> Array.fold (fun acc L -> L+acc ) obs.regularise
+    |> Array.fold (fun acc L -> L+acc ) (obs.regularise matlabReplicate)
 
 let normaliseTimePointsForSurvival excludeOnes (cloneSizes: float [] []) survival =
     //Exlude the probability of single cell clones
@@ -114,7 +116,7 @@ let extrapolateZeroProbabilities p =
 let individualLogLikelihoodContribution (pIndividual: float [] []) (search:Types.parameterSearch) (data:experimentalDataPoint list) =
     let timeMap = Map.ofArray (Array.mapi (fun i time -> (time,i)) search.timePoints)
     let correspondingP = List.map (fun dataPoint -> pIndividual.[timeMap.[dataPoint.time]] ) data //We could easily correct everything here...
-    List.map2 (fun dataPoint probabilityDist -> logLikelihood probabilityDist dataPoint) data correspondingP 
+    List.map2 (fun dataPoint probabilityDist -> logLikelihood probabilityDist dataPoint search.matlabReplicate) data correspondingP 
     //Where is the log of the multinomial   
     |> List.fold (fun acc p -> acc + p)  0.
 
