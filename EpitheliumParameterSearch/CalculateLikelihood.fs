@@ -39,24 +39,29 @@ let normaliseTimePointsForSurvival excludeOnes (cloneSizes: float [] []) surviva
     let survival' = if excludeOnes then Array.mapi (fun i f -> f - cloneSizes.[i].[0]) survival else survival 
     Array.map2 (fun numberPatT survivalPatT -> Array.mapi (fun index specificNumberPatT -> if excludeOnes && index = 0 then 0. else specificNumberPatT/survivalPatT) numberPatT) cloneSizes survival'
 
-let extrapolateZeroProbabilities' p =
+let extrapolateZeroProbabilities' excludeOnes p =
     //This function is intenteded as a exact reimplementation of the matlab code
     //Where functions can return nothing (!) I've inserted failwith() terms
     //Note that erroneous zero probabilities are an issue in the original matlab implementation:
     //            % Since numerical accuracy is limited, correct zeros in P
     //            % by making use of fact that P is essentially exponential.
-    if (Array.filter (fun i -> i = 0.) p |> Array.length) = 0 then p else
-        let pI = Array.mapi (fun index element -> (index,element) ) p
-        let i0 = Array.findIndex (fun (i,e) -> i <> 0 && e=0.) pI
+    let pI = Array.mapi (fun index element -> (index,element) ) p
+    if (Array.filter (fun (i,e) -> ((excludeOnes && i <> 0) || not excludeOnes) && e = 0.) pI |> Array.length) = 0 then p else
+        let i0 = (Array.findIndex (fun (i,e) -> i <> 0 && e=0.) pI) - 1
         if i0 <= 7 then failwith("Too few zero probabilities to extrapolate safely") else
             let i1 = int(round(float(i0)*0.65))
             let i2 = int(round(float(i0)*0.75))
-            let a1 = Array.init (i2-i1) (fun i -> p.[i-1])
-            let a2 = Array.init (i2-i1) (fun i -> p.[i])
+            let a1 = Array.init (i2-i1) (fun i -> p.[i1+i-1])
+            let a2 = Array.init (i2-i1) (fun i -> p.[i1+i])
             let wt = Array.map2 (fun a b -> a/b) a2 a1
                      |> Array.sum 
                      |> (fun i -> i/(float(i2-i1)))
-            Array.map (fun (i,e) -> if i <= i0 then e else p.[i0] * (pown wt (i-i0))) pI
+            
+            let result = Array.map (fun (i,e) -> if i <= i0 then e else p.[i0] * (pown wt (i-i0))) pI
+            let resultI = Array.mapi (fun index element -> (index,element) ) result
+            let zerosRemaining = (Array.filter (fun (i,e) -> ((excludeOnes && i <> 0) || not excludeOnes) && e = 0.) resultI |> Array.length)
+            if zerosRemaining <> 0 then printf "%A zero elements remain\n%A\n" zerosRemaining result; failwith("Missing extrapolation")
+            result
 
 let extrapolateZeroProbabilities p =
     //pComplete is both the indices and the probabilities, stored as an array of tuples
@@ -119,7 +124,7 @@ let getLikelihood data (search:Types.parameterSearch) =
                     | Some(res) -> res
     //Normalise count probabilities assuming survival & extrapolate values for "zero" probabilities
     let P = Types.resultsMap2 (normaliseTimePointsForSurvival search.excludeOnes) results.cloneSizeMatrix results.survivalMatrix 
-            |> Types.resultsMap (fun pt -> Array.map (fun p -> extrapolateZeroProbabilities' p) pt)
+            |> Types.resultsMap (fun pt -> Array.map (fun p -> extrapolateZeroProbabilities' search.excludeOnes p) pt)
     let data = if search.excludeOnes then List.map (fun (point:experimentalDataPoint) -> point.excludeOnes) data else data
                |> List.map (fun (obs:experimentalDataPoint) -> obs.extend search.maxN) 
     Types.resultsMap (fun pIndividual -> individualLogLikelihoodContribution pIndividual search data ) P
