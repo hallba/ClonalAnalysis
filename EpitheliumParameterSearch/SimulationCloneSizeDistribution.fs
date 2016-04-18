@@ -1,5 +1,8 @@
 ﻿module SimulationCloneSizeDistribution
 
+open FSharp.Collections.ParallelSeq
+open MathNet.Numerics
+
 type cellPopulation = 
                 {   A : int<Types.cell>;
                     B : int<Types.cell>;
@@ -23,6 +26,7 @@ type randomBasal =
             {       time: float<Types.week>;
                     basalSum: int<Types.cell> array;
                     animalID:int;
+                    parameterSet:string;
             }
 
 type reportStyle = Regular of regularReporting | Specified of float<Types.week> list
@@ -216,22 +220,27 @@ let cloneProbability number (clone:clone)=
         | initPoint::rest -> rest //Discard t0 
         )
 
+//let outputFile = @"//datacentre/Shares/Users/vk325/Desktop/test.txt"
 
-let summarizeObservations (allBasalSums: randomBasal [] ) =
 
-    let outputFile = @"//your/path/to/output/file.txt"
+let summarizeObservations (allBasalSums: randomBasal [] )  =
+
+    let filename = allBasalSums.[0].parameterSet
+    let outputFile = @"//datacentre/Shares/Users/vk325/Desktop/test/"+filename
+ 
     let summary = 
       [| for i in allBasalSums ->
             let daytime = int (i.time * 7.0)
-            let timeStr = "tExp(k) = "+daytime.ToString()+"/7"
+            let timeStr = "tExp(k) = "+daytime.ToString()+"/7;"
             let animalIDStr = "% "+daytime.ToString()+" days, mouse"+ i.animalID.ToString()
-            let max = i.basalSum |> Seq.max   //maximum cell numbers observed
-            let res = i.basalSum |> Seq.filter (fun x-> int(x) <> 0)    // discard zero observations
+            let max = i.basalSum |> Seq.max   //maximum cell number observed
+            let res = i.basalSum //|> Seq.filter (fun x-> int(x) <> 0)    // discard zero observations
                                  |> Seq.countBy (fun x-> x)
                                  |> Seq.toList
                                  |> List.sort
 
             let occs = Array.init (int(max)) (fun x-> x+1)
+            //let occs = Array.init (int(max)+1) (fun x-> x)
 
             let obsSummary = 
                 occs 
@@ -241,51 +250,108 @@ let summarizeObservations (allBasalSums: randomBasal [] ) =
                     |>Array.mapi (fun i el ->
                         match el with
                         | [] -> sprintf "%A %A" occs.[i] 0
-                        | _ -> sprintf "%A" el
+                        | [(f,s)] -> sprintf "%A %A" f s
+                        | _ -> failwith "No observation created!"
                         )
           
-            Array.concat [| [|animalIDStr|]; [|"k=k+1"|]; [|timeStr|]; [|"data{k} = ..."|]; obsSummary; [|"\n"|] |]
+            Array.concat [| [|animalIDStr|]; [|"k=k+1;"|]; [|timeStr|]; [|"data{k} = ..."|]; [|"["|]; obsSummary; [|"];"|]; [|"\n"|] |]
              |]
         |> Array.concat
         
     summary|> (fun s -> System.IO.File.AppendAllLines(outputFile, s))
                                           
-    summary
+         
+
+//calculate correlation coefficient (r^2) and linear equation
+let calcLinear (x:float[], y:float[]) = 
+    let linearParameters = Fit.Line(x,y)   //tuple:(fst:intercept,snd:slope)
+    let rsq = GoodnessOfFit.RSquared(x,y)
+    (linearParameters,rsq)
+ 
+//calculate the slope from t=0, n=1 (x1,y1) and first non t=0 timepoint (x2,y2)    
+let calcSlope (x2:float, y2:float) = 
+    let x1 = 0.0
+    let y1 = 1.0
+    (y2 - y1) / (x2 - x1)
+
+let massiveSimulation numberSims clone =
+    let sims = Seq.init numberSims (fun i -> simulate {clone with rng=System.Random(i)})
+
+    let totalTimePoints = match clone.reporting with
+                            | Specified(n) -> List.length n
+                            | Regular(r) -> (int(r.timeLimit/r.frequency))
+
+    let acc = Array.init totalTimePoints (fun i -> 0<Types.cell>)
    
+    let addObservations runningTotal (result:populationState list) =
+        //let t = result|>List.map(fun t-> printfn "%A" t.time)
+        let timepoints = result|>List.map(fun t -> float(t.time))|>Array.ofList
+        let basalSummary = List.map (fun individualTimePoint -> individualTimePoint.population.basal) result
+                            //|> Seq.skip 1   //discard 0 time point
+                            |> Array.ofList
+        Array.map2 (fun r T -> r+T) basalSummary.[1..] runningTotal 
+
+    let totalBasalCells = Seq.fold addObservations acc sims
+    let avgBasal = totalBasalCells |> Array.map(fun elem -> float(elem) / float(numberSims))
+
+    let getTimePoints (result:populationState list) = 
+        result|>List.map(fun t -> float(t.time))|>Array.ofList
+        
+    let timepoints = sims|> Seq.map (fun s -> getTimePoints s)|> Seq.take 1|> Seq.toList
+    
+    let (intercept,slope),rsq = calcLinear(timepoints.[0].[1..], avgBasal)
+    ()
+ 
+
+let getBasalSum timepoint id sims cloneNumberPerAnimal (rnd:System.Random) pfilename = 
+    let timeIndex = timepoint + 1 //discard 0 time point, start from second time point (timpoint index: 1)
+    let animalID = id + 1
+    
+
+    let allClonesPerTimepoint = sims|>Array.map (fun (el:populationState list)->el.[timeIndex]) // get all clone objects that correspond to each timepoint
+
+    let timepoint = allClonesPerTimepoint.[0].time
+
+    //filter empty clones out of sims
+
+    let filteredClonesPerTimepoint = Array.filter (fun cl -> cl.population.basal > 0<Types.cell>) allClonesPerTimepoint
+
+    let randomIndices = Array.init cloneNumberPerAnimal (fun _ -> rnd.Next(filteredClonesPerTimepoint.Length))
+
+    let bs = Array.map (fun x -> filteredClonesPerTimepoint.[x].population.basal) randomIndices   //get the number of basal cells at each random position
+
+    let rb = {time=timepoint; basalSum=bs; animalID=animalID; parameterSet=pfilename}  
+   
+    rb
+    
 
 let getRandomBasal numberOfSims cloneNumberPerAnimal (clone:clone)=
-    
-    let observations =  match clone.reporting with
-                        | Specified(l)  -> List.map (fun time -> {noObservations with time=time}) ((0.<Types.week>)::l)
-                        | Regular(r)    -> List.init (int(r.timeLimit/r.frequency)+1) (fun i -> {noObservations with time=float(i)*r.frequency} )
+
     let sims = Array.init numberOfSims (fun i -> simulate {clone with rng=System.Random(i)})
-    
+
+    let pfilename = "synthetic"+clone.r.ToString()+"_"+clone.rho.ToString()+"_"+clone.lambda.ToString()+".m" //matlab output file name
     let rnd = new System.Random()
     let numberOfTimepoints = sims.[0].Length;
+
     let animals = 4 //introducing 4 different animals to mimic the experimental data
 
-    let getBasalSum timepoint id  = 
-       let i = timepoint + 1
-       let animalID = id + 1
-
-       let allClonesPerTimepoint = sims|>Array.map (fun el->el.[i])
-       let timepoint = allClonesPerTimepoint.[0].time
-
-       let randomIndices = Array.init cloneNumberPerAnimal (fun _ -> rnd.Next(allClonesPerTimepoint.Length))
-       let bs = Array.map (fun x -> allClonesPerTimepoint.[x].population.basal) randomIndices   //get the number of basal cells at each random position
-
-       let rb = {time=timepoint; basalSum=bs; animalID=animalID}  
-       rb
+    let outputFile = @"//datacentre/Shares/Users/vk325/Desktop/test/"+pfilename
+    let parameters = "%PARAMETERS: "+"r: "+clone.r.ToString()+"; rho: "+clone.rho.ToString()+"; lamda: "+clone.lambda.ToString()+"\nk=0;"
+    ignore (System.IO.File.AppendAllLines(outputFile, [|parameters|]))
 
     let allBasalSums = 
-        Array.init (numberOfTimepoints-1) ( fun i ->
-           Array.init animals (fun id -> getBasalSum i id) // group to 4 animal ids of equal number of elements
-                |>summarizeObservations)
+        Array.init (numberOfTimepoints-1) ( fun t ->  //the numberOfTimepoints includes the zero time point which has to be discarded 
+          Array.init animals (fun id -> getBasalSum t id sims cloneNumberPerAnimal rnd pfilename) // group to 4 animal ids of equal number of elements
+                |>summarizeObservations) 
+
 
     allBasalSums   
 
 
 let createSyntheticDataset parameterSets numberOfSims cloneNumberPerAnimal =
+
+    //let outputFile = @"//datacentre/Shares/Users/vk325/Desktop/test.txt"
+    //System.IO.File.AppendAllText(outputFile, "k=0;\n")
 
     let completeSet = Types.createParameterSet {parameterSets with timePoints=[|0.<Types.week>|]}  
     let allRandomBasalSums = 
