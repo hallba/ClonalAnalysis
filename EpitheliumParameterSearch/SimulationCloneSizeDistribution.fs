@@ -217,20 +217,21 @@ let cloneProbability number (clone:clone)=
         )
 
 
-let summarizeObservations (allBasalSums: randomBasal [] )=
-    
-    //allRandomBasalSums.[0] |> Seq.iter (fun x -> printfn "%A" x.time) |> 
-    //let outputFile = @"//datacentre/Shares/Users/vk325/Desktop/test.txt"
-    let outputFile = @"C:/Users/Vicky/Desktop/test.txt"
+let summarizeObservations (allBasalSums: randomBasal [] ) =
 
+    let outputFile = @"//your/path/to/output/file.txt"
     let summary = 
       [| for i in allBasalSums ->
             let daytime = int (i.time * 7.0)
-            let timeStr = "tExp(k) = "+daytime.ToString()+"/7"//sprintf "tExp(k) = %A/7" daytime
-            let animalIDStr = "Animal:"+ i.animalID.ToString()
-            let max = i.basalSum |> Seq.max 
-            let res = i.basalSum |> Seq.countBy (fun x-> x)|>Seq.toList|> List.sort
-            let occs = Array.init (int(max)+1) (fun x-> x)
+            let timeStr = "tExp(k) = "+daytime.ToString()+"/7"
+            let animalIDStr = "% "+daytime.ToString()+" days, mouse"+ i.animalID.ToString()
+            let max = i.basalSum |> Seq.max   //maximum cell numbers observed
+            let res = i.basalSum |> Seq.filter (fun x-> int(x) <> 0)    // discard zero observations
+                                 |> Seq.countBy (fun x-> x)
+                                 |> Seq.toList
+                                 |> List.sort
+
+            let occs = Array.init (int(max)) (fun x-> x+1)
 
             let obsSummary = 
                 occs 
@@ -242,23 +243,18 @@ let summarizeObservations (allBasalSums: randomBasal [] )=
                         | [] -> sprintf "%A %A" occs.[i] 0
                         | _ -> sprintf "%A" el
                         )
-            //let str2 = sprintf "RES: %A" res 
-            //let str3 = sprintf "OCCURENCES: %A" occs
-            Array.concat [| [|animalIDStr |]; [|"k=k+1"|]; [|timeStr|]; [|"data{k} = ..."|]; obsSummary |]
+          
+            Array.concat [| [|animalIDStr|]; [|"k=k+1"|]; [|timeStr|]; [|"data{k} = ..."|]; obsSummary; [|"\n"|] |]
              |]
         |> Array.concat
         
-    summary|> (fun x -> System.IO.File.AppendAllLines(outputFile, x))
-        //printfn "%A" max
-        //printfn "OBSERVATION: %A" obsSummary 
-       // Seq.map (fun x -> x.basalSum) |> Seq.countBy (fun x-> x)                                          
+    summary|> (fun s -> System.IO.File.AppendAllLines(outputFile, s))
+                                          
     summary
    
 
-let getRandomBasal numberOfSims cloneNumber (clone:clone)=
+let getRandomBasal numberOfSims cloneNumberPerAnimal (clone:clone)=
     
-    //printfn "PARAMETER SUMMARY"
-    //printfn "r: %A \n rho: %A \n lamda: %A" clone.r clone.rho clone.lambda
     let observations =  match clone.reporting with
                         | Specified(l)  -> List.map (fun time -> {noObservations with time=time}) ((0.<Types.week>)::l)
                         | Regular(r)    -> List.init (int(r.timeLimit/r.frequency)+1) (fun i -> {noObservations with time=float(i)*r.frequency} )
@@ -266,57 +262,39 @@ let getRandomBasal numberOfSims cloneNumber (clone:clone)=
     
     let rnd = new System.Random()
     let numberOfTimepoints = sims.[0].Length;
- 
-    let animals = 4
+    let animals = 4 //introducing 4 different animals to mimic the experimental data
 
     let getBasalSum timepoint id  = 
-        let i = timepoint + 1
-        let animalID = id + 1
-        //printfn "-------------ANIMAL ID: %A" id
-        let allClonesPerTimepoint = sims|>Array.map (fun el->el.[i])
-        let timepoint = allClonesPerTimepoint.[0].time
-        //printfn "%A" timepoint
-        let randomIndices = Array.init cloneNumber (fun _ -> rnd.Next(allClonesPerTimepoint.Length))
-        //printfn "random Indices: %A" randomIndices
-        //randomIndices |> Array.iter (fun x -> printfn "%A" allClonesPerTimepoint.[x])
-        let bs = Array.map (fun x -> allClonesPerTimepoint.[x].population.basal) randomIndices
+       let i = timepoint + 1
+       let animalID = id + 1
 
-        //printfn "basalSum: %A" bs
-        //let str = "basalSum: " + bs.ToString()
-        //let str2 = sprintf "basalSum: %A" bs
+       let allClonesPerTimepoint = sims|>Array.map (fun el->el.[i])
+       let timepoint = allClonesPerTimepoint.[0].time
 
-        let qi =bs|> (fun x -> dict[x,1;])
-        //for p in qi do printfn "DICT: %A" p
-        //printfn "%A" qi.[bs]
-        //let slice = bs |> fun x -> bs.[..int(bs.Length/4)-1]|>printfn "SLICE: %A"
-        let rb = {time=timepoint; basalSum=bs; animalID=animalID}  
-        rb
+       let randomIndices = Array.init cloneNumberPerAnimal (fun _ -> rnd.Next(allClonesPerTimepoint.Length))
+       let bs = Array.map (fun x -> allClonesPerTimepoint.[x].population.basal) randomIndices   //get the number of basal cells at each random position
+
+       let rb = {time=timepoint; basalSum=bs; animalID=animalID}  
+       rb
 
     let allBasalSums = 
-        Array.init animals (fun id ->
-           Array.init (numberOfTimepoints-1) (fun i -> getBasalSum i id)|>summarizeObservations) // group to 4 animal ids of equal number of elements
+        Array.init (numberOfTimepoints-1) ( fun i ->
+           Array.init animals (fun id -> getBasalSum i id) // group to 4 animal ids of equal number of elements
+                |>summarizeObservations)
 
-    let xs = [|1.0; 2.0; 3.0|]
-    let strAllBasal = xs |> Seq.map string |> String.concat ","
+    allBasalSums   
 
-    //summarizeObservations allBasalSums |> Array.iter (printfn "%A")
-    allBasalSums    
 
-let createSyntheticDataset parameterSets numberOfSims cloneNumber =
-    //printfn "START SYNTHETIC"
-    
+let createSyntheticDataset parameterSets numberOfSims cloneNumberPerAnimal =
+
     let completeSet = Types.createParameterSet {parameterSets with timePoints=[|0.<Types.week>|]}  
     let allRandomBasalSums = 
-        Array.map (fun input ->     //parallel causes issues in printing, might worth using agents
+        Array.map (fun input ->     //parallel causes issues in printing
             input 
             |> parameterSetToClone (Specified(List.ofArray parameterSets.timePoints))
-            |> getRandomBasal numberOfSims cloneNumber
+            |> getRandomBasal numberOfSims cloneNumberPerAnimal
         ) completeSet
 
-    
-    //summarizeObservations allRandomBasalSums
-    allRandomBasalSums |> printfn "%A" 
-    //let res = summarizeObservations allRandomBasalSums
-    //printfn "RESULT %A" res
-    //printfn "END SYNTHETIC"
+    allRandomBasalSums //|> printfn "%A" 
+  
 

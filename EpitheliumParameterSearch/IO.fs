@@ -95,6 +95,8 @@ let importMatlab (filename: string) =
                     Types.maxN=maxN
                     Types.results=None
                     Types.excludeOnes=true
+                    Types.supraBasalFit=false
+                    Types.matlabReplicate=true
                     }
 
     let cloneSizeP = read5d "PScanPP"  [(Array.length lambdaRange);(Array.length rhoRange);(Array.length rRange);(Array.length t);maxN]
@@ -106,16 +108,7 @@ let importMatlab (filename: string) =
                     Types.oneDimSurvMatrix = [||]
                     }
     //Return a complete parametersearch result
-    {   
-        Types.lambdaRange = lambdaRange
-        Types.rRange = rRange
-        Types.rhoRange = rhoRange
-        Types.timePoints = t
-        Types.excludeOnes = true
-        Types.maxN = maxN
-        Types.deltaRange = Types.Zero
-        Types.results = Some(result)
-        }
+    {  input with results = Some(result) }
     //could also read maxN and nBadvalues
 
 //    let scanMatD = ([lambdaRange;rhoRange;rRange;t;nRange] |> List.map (fun i -> Array.length i))

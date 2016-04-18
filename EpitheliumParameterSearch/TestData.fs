@@ -11,6 +11,8 @@ let kasumiParameters =  {
                             Types.deltaRange    =   Types.Zero
                             Types.results       =   None
                             Types.excludeOnes   =   true
+                            Types.matlabReplicate = false
+                            Types.supraBasalFit = false
                             }
 
 let kasumip53 =  {
@@ -22,6 +24,8 @@ let kasumip53 =  {
                             Types.deltaRange    =   Types.Range(List.init 101 (fun i -> float(i)*0.01<Types.probability>) )
                             Types.results       =   None
                             Types.excludeOnes   =   true
+                            Types.matlabReplicate = false
+                            Types.supraBasalFit = false
                             }
 
 let kasumiCG = {
@@ -33,6 +37,8 @@ let kasumiCG = {
                             Types.deltaRange    =   Types.Zero
                             Types.results       =   None
                             Types.excludeOnes   =   true
+                            Types.matlabReplicate = false
+                            Types.supraBasalFit = false
                             }//200 =~ 30 mins Simulation
 
 let kasumiLocal =  {
@@ -44,6 +50,8 @@ let kasumiLocal =  {
                             Types.deltaRange    =   Types.Zero
                             Types.results       =   None
                             Types.excludeOnes   =   true
+                            Types.matlabReplicate = false
+                            Types.supraBasalFit = false
                             }
 
 let tinyScan = {
@@ -55,6 +63,8 @@ let tinyScan = {
                             Types.deltaRange    =   Types.Zero
                             Types.excludeOnes   =   true
                             Types.results       =   None
+                            Types.matlabReplicate = false
+                            Types.supraBasalFit = false
                 }
 
 let testClone = Types.testSystem |> SimulationCloneSizeDistribution.parameterSetToClone (SimulationCloneSizeDistribution.Specified([1.428571429<Types.week>;])) ;;
@@ -112,6 +122,33 @@ let kasumip53Data = [
                     cloneSize=[|24;18;11;5;3;5;1;2;1;2;2;0;1;1;0;2;3;0;0;0;1|]
                     }
 
+                    ]
+
+let kasumiWTDatum = [
+                    {
+                    time=(11.<Types.week>/7.)
+                    cloneSize=[|50;2|]
+                    }
+                    ]
+
+let kasumiWTDatum2= [
+                    {
+                    time=(11.<Types.week>/7.)
+                    cloneSize=[|50;2|]
+                    }
+                    {
+                    time=(11.<Types.week>/7.)
+                    cloneSize=[|83;12;1;1|]
+                    }
+                    ]
+
+let kasumiWTDataPart = [
+
+                    {
+                    time=(365.<Types.week>/7.)
+                    cloneSize=[|25;15;9;3;5;3;5;0;0;3;2;1;0;1;1;0;2;0;0;0;0;1;0;0;0;0;0;0;0;1;0;0;0;0;1;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1|]
+                    }
+                    
                     ]
 
 let kasumiWTData = [

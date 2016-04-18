@@ -3,6 +3,7 @@
 #load "Whittaker.fs"
 #load "Parallel.fs"
 #load "Types.fs"
+#load "IO.fs"
 #load "SimulationCloneSizeDistribution.fs"
 #load "AnalyticalCloneSizeDistribution.fs"
 #load "CalculateProbability.fs"
