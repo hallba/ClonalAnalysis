@@ -281,15 +281,14 @@ let massiveSimulation numberSims clone =
                             | Specified(n) -> List.length n
                             | Regular(r) -> (int(r.timeLimit/r.frequency))
 
-    let acc = Array.init totalTimePoints (fun i -> 0<Types.cell>)
+    let acc = Array.init totalTimePoints (fun i -> int64(0<Types.cell>))
    
     let addObservations runningTotal (result:populationState list) =
-        //let t = result|>List.map(fun t-> printfn "%A" t.time)
         let timepoints = result|>List.map(fun t -> float(t.time))|>Array.ofList
         let basalSummary = List.map (fun individualTimePoint -> individualTimePoint.population.basal) result
                             //|> Seq.skip 1   //discard 0 time point
                             |> Array.ofList
-        Array.map2 (fun r T -> r+T) basalSummary.[1..] runningTotal 
+        Array.map2 (fun r T -> int64(r)+int64(T)) basalSummary.[1..] runningTotal 
 
     let totalBasalCells = Seq.fold addObservations acc sims
     let avgBasal = totalBasalCells |> Array.map(fun elem -> float(elem) / float(numberSims))
