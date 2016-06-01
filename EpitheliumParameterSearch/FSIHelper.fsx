@@ -9,6 +9,7 @@
 #load "CalculateProbability.fs"
 #load "CalculateLikelihood.fs"
 #load "TestData.fs"
+#load "AnalyseLikelihood.fs"
 
 let sim = CalculateProbability.parameterSearch TestData.kasumip53 CalculateProbability.Simulation
 
