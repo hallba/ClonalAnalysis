@@ -15,13 +15,26 @@ let kasumiParameters =  {
                             Types.supraBasalFit = false
                             }
 
+let kasumiWTasp53 =  {
+                            Types.timePoints    =   [|(11.<Types.week>/7.); (21.<Types.week>/7.) ; (42.<Types.week>/7.) ; (90.<Types.week>/7.) ; (180.<Types.week>/7.) ; (365.<Types.week>/7.); (545.<Types.week>/7.)|]
+                            Types.rhoRange      =   [|0.5|]
+                            Types.rRange        =   [|0.1<Types.probability>|]
+                            Types.lambdaRange   =   [|1.2<Types.cell/Types.week>;|]
+                            Types.maxN          =   195
+                            Types.deltaRange    =   Types.Range(List.init 11 (fun i -> float(i)*0.1<Types.probability>) )
+                            Types.results       =   None
+                            Types.excludeOnes   =   true
+                            Types.matlabReplicate = false
+                            Types.supraBasalFit = false
+                            }
+
 let kasumip53 =  {
                             Types.timePoints    =   [|(11.<Types.week>/7.); (21.<Types.week>/7.) ; (42.<Types.week>/7.) ; (90.<Types.week>/7.) |]
                             Types.rhoRange      =   [|0.5|]//[|0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9|]
                             Types.rRange        =   [|0.1<Types.probability>;|]
                             Types.lambdaRange   =   [|1.2<Types.cell/Types.week>;|]
                             Types.maxN          =   195
-                            Types.deltaRange    =   Types.Range(List.init 101 (fun i -> float(i)*0.01<Types.probability>) )
+                            Types.deltaRange    =   Types.Range(List.init 11 (fun i -> float(i)*0.1<Types.probability>) )
                             Types.results       =   None
                             Types.excludeOnes   =   true
                             Types.matlabReplicate = false
