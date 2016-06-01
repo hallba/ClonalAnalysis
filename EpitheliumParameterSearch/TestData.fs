@@ -80,6 +80,23 @@ let tinyScan = {
                             Types.supraBasalFit = false
                 }
 
+
+let synthetic =  {
+                            Types.timePoints    =   [|(11.<Types.week>/7.); (21.<Types.week>/7.) ; (42.<Types.week>/7.) ; (90.<Types.week>/7.) ; (180.<Types.week>/7.) ; (365.<Types.week>/7.); (545.<Types.week>/7.)|]
+                            Types.rhoRange      =   [|0.25; 0.5; 0.75 |]
+                            Types.rRange        =   [|0.125<Types.probability>; 0.25<Types.probability>; 0.375<Types.probability>;|]
+                            //Types.rRange        =   [|0.01<Types.probability>; 0.11<Types.probability>; 0.15<Types.probability>; 0.21<Types.probability>; 0.25<Types.probability>; 0.29<Types.probability>|]
+                            Types.lambdaRange   =   [|1.<Types.cell/Types.week>; 2.<Types.cell/Types.week>; 3.<Types.cell/Types.week>;|]
+                            Types.maxN          =   195
+                            Types.deltaRange    =   Types.Zero
+                            Types.results       =   None
+                            Types.excludeOnes   =   true
+                            Types.matlabReplicate = false
+                            Types.supraBasalFit = false
+
+                    }
+
+
 let testClone = Types.testSystem |> SimulationCloneSizeDistribution.parameterSetToClone (SimulationCloneSizeDistribution.Specified([1.428571429<Types.week>;])) ;;
 
 let kasumip53Data = [
