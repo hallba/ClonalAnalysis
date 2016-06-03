@@ -20,15 +20,37 @@ let averageSBBRatio numberSimulations clone =
     |> List.map (fun (c,r) -> r/float(c) )
 
 type finishingCondition = Tolerance of float | Count of int
+
+let floatingCloneProbability' finishingCondition clone = 
+    let calcP (c,fc) = float(fc)/float(c)
+    let rec fcsim count clone finishingCondition acc =
+        let result = simulate {clone with rng=System.Random(count)}
+        let acc' = List.map2 (fun tc tn -> countFloatingClones tc tn) acc result
+        match finishingCondition with
+        | Count(i) ->   //printf "Count %A Acc %A\n" count acc'
+                        if count >= (i-1) then acc' else fcsim (count+1) clone finishingCondition acc'
+        | Tolerance(f) ->   let maxDiff = List.map2 (fun aE aE' -> abs((calcP aE')-(calcP aE))) acc acc' |> List.max
+//                            let t0::trest = acc'
+//                            let mino = List.minBy (fun (c,fc) -> fc) trest
+                            ignore (if count%10000=0 then printf "Count %A maxDiff %A\n" count maxDiff else ())
+                            if (maxDiff > f|| System.Double.IsNaN(maxDiff) || maxDiff=0.) then fcsim (count+1) clone finishingCondition acc' else acc'
     
-let floatingCloneProbability finishingCondition clone = 
+    let neutral = List.map (fun i -> (0,0)) (   match clone.reporting with 
+                                                | Specified(a) -> ((0.<Types.week>)::a)
+                                                | Regular(r) -> ((0.<Types.week>)::(List.init (int(r.timeLimit/r.frequency)) (fun i -> float(i+1)*r.frequency)))
+                                                )
+    fcsim 0 clone finishingCondition neutral
+    |> List.map calcP
+
+let floatingCloneProbability numberSimulations clone = 
     let sims = Seq.init numberSimulations (fun i -> simulate {clone with rng=System.Random(i)})
     let neutral = List.map (fun i -> (0,0)) (   match clone.reporting with 
                                                 | Specified(a) -> ((0.<Types.week>)::a)
                                                 | Regular(r) -> ((0.<Types.week>)::(List.init (int(r.timeLimit/r.frequency)) (fun i -> float(i+1)*r.frequency)))
                                                 )
-    sims |>  Seq.fold ( fun acc observation -> List.map2 (fun tc tn -> countFloatingClones tc tn) acc observation ) neutral
-    |> List.map (fun (c,fc) -> float(fc)/float(c) )
+    let r = sims |>  Seq.fold ( fun acc observation -> List.map2 (fun tc tn -> countFloatingClones tc tn) acc observation ) neutral
+    printf "R %A" r
+    r |> List.map (fun (c,fc) -> float(fc)/float(c) )
 //    Array.fold ( fun (popState:populationState) acc ->         
 //                                                                        if popState.population.basal = 0 then acc else
 //                                                                            let count = snd(acc)
