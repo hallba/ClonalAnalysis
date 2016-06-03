@@ -1,6 +1,6 @@
 ﻿module SimulationCloneSizeDistribution
 
-open FSharp.Collections.ParallelSeq
+//open FSharp.Collections.ParallelSeq
 open MathNet.Numerics
 
 type cellPopulation = 
