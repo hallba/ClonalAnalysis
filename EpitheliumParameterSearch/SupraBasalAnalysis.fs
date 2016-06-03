@@ -32,7 +32,7 @@ let floatingCloneProbability' finishingCondition clone =
         | Tolerance(f) ->   let maxDiff = List.map2 (fun aE aE' -> abs((calcP aE')-(calcP aE))) acc acc' |> List.max
 //                            let t0::trest = acc'
 //                            let mino = List.minBy (fun (c,fc) -> fc) trest
-                            ignore (if count%10000=0 then printf "Count %A maxDiff %A\n" count maxDiff else ())
+                            //ignore (if count%10000=0 then printf "Count %A maxDiff %A\n" count maxDiff else ())
                             if (maxDiff > f|| System.Double.IsNaN(maxDiff) || maxDiff=0.) then fcsim (count+1) clone finishingCondition acc' else acc'
     
     let neutral = List.map (fun i -> (0,0)) (   match clone.reporting with 
@@ -62,3 +62,6 @@ let logLikelihood p o =
     let fc = fst(o)
     let nfc = snd(o)
     if (fc+nfc=0) then 0. else (log(p)*float(fc) + log(1.-p)*float(nfc))
+
+let suprabasalObservationProbability finishingCondition basalSizeRange clone =
+    let calcP (c,fc) = float(fc)/float(c)
