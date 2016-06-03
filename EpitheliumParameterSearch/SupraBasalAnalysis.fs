@@ -57,3 +57,8 @@ let floatingCloneProbability numberSimulations clone =
 //                                                                            let ratio = fst(acc) + float(popState.population.basal)/float(popState.population.suprabasal)
 //                                                                            (count,ratio)          
 //                                                                        ) neutral
+
+let logLikelihood p o = 
+    let fc = fst(o)
+    let nfc = snd(o)
+    if (fc+nfc=0) then 0. else (log(p)*float(fc) + log(1.-p)*float(nfc))
