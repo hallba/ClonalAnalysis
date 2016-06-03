@@ -63,5 +63,13 @@ let logLikelihood p o =
     let nfc = snd(o)
     if (fc+nfc=0) then 0. else (log(p)*float(fc) + log(1.-p)*float(nfc))
 
+let countSB basalSize popState total =
+    if basalSize <> popState.population.basal then total
+    else if popState.population.suprabasal = 0<Types.cell> then ((fst(total)+1),(snd(total)))
+    else ((1+fst(total)),(1+snd(total)))
+
 let suprabasalObservationProbability finishingCondition basalSizeRange clone =
     let calcP (c,fc) = float(fc)/float(c)
+    let rec sbsim clone finishingCondition acc =
+        let result = simulate {clone with rng=System.Random(count)}
+        let acc' = List.map2 (fun tc tn -> countFloatingClones tc tn) acc result
