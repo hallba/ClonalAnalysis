@@ -63,13 +63,25 @@ let logLikelihood p o =
     let nfc = snd(o)
     if (fc+nfc=0) then 0. else (log(p)*float(fc) + log(1.-p)*float(nfc))
 
-let countSB basalSize popState total =
-    if basalSize <> popState.population.basal then total
+let countSBIndividual popState total basalSizeIndividual =
+    if basalSizeIndividual <> popState.population.basal then total
     else if popState.population.suprabasal = 0<Types.cell> then ((fst(total)+1),(snd(total)))
     else ((1+fst(total)),(1+snd(total)))
 
-let suprabasalObservationProbability finishingCondition basalSizeRange clone =
+let suprabasalObservationProbability finishingCondition basalSizes clone =
     let calcP (c,fc) = float(fc)/float(c)
-    let rec sbsim clone finishingCondition acc =
-        let result = simulate {clone with rng=System.Random(count)}
-        let acc' = List.map2 (fun tc tn -> countFloatingClones tc tn) acc result
+    let rec sbsim clone finishingCondition count acc =
+        let sim =   simulate {clone with rng=System.Random(count)}
+        let acc' = List.map2 (fun popState currentState -> List.map2 (countSBIndividual popState) currentState basalSizes) sim acc
+
+        match finishingCondition with
+        | Count(n) -> if count >= (n-1) then acc' else sbsim clone finishingCondition (count+1) acc'
+        | Tolerance(a) -> failwith ""
+    
+    let timePoints =    match clone.reporting with 
+                        | Specified(a) -> ((0.<Types.week>)::a)
+                        | Regular(r) -> ((0.<Types.week>)::(List.init (int(r.timeLimit/r.frequency)) (fun i -> float(i+1)*r.frequency)))
+                                                                                                
+    let neutral = List.map (fun j -> (List.map (fun i -> (0,0)) basalSizes))  timePoints
+    
+    sbsim clone finishingCondition 0 neutral
