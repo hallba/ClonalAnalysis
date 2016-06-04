@@ -76,7 +76,13 @@ let suprabasalObservationProbability finishingCondition basalSizes clone =
 
         match finishingCondition with
         | Count(n) -> if count >= (n-1) then acc' else sbsim clone finishingCondition (count+1) acc'
-        | Tolerance(a) -> failwith ""
+        | Tolerance(a) ->   let result = List.map (fun timePoint -> List.map calcP timePoint ) acc
+                            let result' = List.map (fun timePoint -> List.map calcP timePoint ) acc'
+                            let maxDiff = List.map2 (fun timePoint' timePoint -> List.map2 (fun b' b -> let r = abs(b' - b)
+                                                                                                        if System.Double.IsNaN(r) then 0. else r ) timePoint' timePoint ) result' result
+                                          |> List.map (fun e -> List.max e)
+                                          |> List.max
+                            if (maxDiff > a|| System.Double.IsNaN(maxDiff) || maxDiff=0.) then sbsim clone finishingCondition (count+1) acc' else acc'
     
     let timePoints =    match clone.reporting with 
                         | Specified(a) -> ((0.<Types.week>)::a)
@@ -85,3 +91,4 @@ let suprabasalObservationProbability finishingCondition basalSizes clone =
     let neutral = List.map (fun j -> (List.map (fun i -> (0,0)) basalSizes))  timePoints
     
     sbsim clone finishingCondition 0 neutral
+    |> List.map (fun timePoint -> List.map calcP timePoint )
