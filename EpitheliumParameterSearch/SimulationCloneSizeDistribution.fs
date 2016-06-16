@@ -6,7 +6,9 @@ open MathNet.Numerics
 type cellPopulation = 
                 {   A : int<Types.cell>;
                     B : int<Types.cell>;
-                    C : int<Types.cell>;  } with
+                    C : int<Types.cell>;  
+                    divisions: int
+                    } with
                     member this.basal = this.A + this.B
                     member this.suprabasal = this.C
 
@@ -69,11 +71,11 @@ type clone = {  state   : populationState;
                 member this.selectEvent =   
                     let random = this.rng.NextDouble()
                     //AA
-                    if random < this.pAA then {this.state.population with A=this.state.population.A+1<Types.cell>}
+                    if random < this.pAA then {this.state.population with A=this.state.population.A+1<Types.cell>;divisions=this.state.population.divisions+1}
                     //AB
-                    else if random < this.pAA + this.pAB then {this.state.population with B=this.state.population.B+1<Types.cell>}
+                    else if random < this.pAA + this.pAB then {this.state.population with B=this.state.population.B+1<Types.cell>;divisions=this.state.population.divisions+1}
                     //BB
-                    else if random < this.pAA + this.pAB + this.pBB then {this.state.population with A=this.state.population.A-1<Types.cell>;B=this.state.population.B+2<Types.cell>}
+                    else if random < this.pAA + this.pAB + this.pBB then {this.state.population with A=this.state.population.A-1<Types.cell>;B=this.state.population.B+2<Types.cell>;divisions=this.state.population.divisions+1}
                     //Migration
                     else if random < this.pAA + this.pAB + this.pBB + this.pB2C then {this.state.population with B=this.state.population.B-1<Types.cell>;C=this.state.population.C+1<Types.cell>}
                     //Shedding
@@ -115,7 +117,8 @@ type clone = {  state   : populationState;
                                                                 
 let initClone = {   state = {   population = {  A = 1<Types.cell>
                                                 B = 0<Types.cell>
-                                                C = 0<Types.cell>; }
+                                                C = 0<Types.cell>; 
+                                                divisions = 0}
                                 time =0.<Types.week> }
                     lambda  = 2.<Types.cell/Types.week>
                     rho = 0.85
