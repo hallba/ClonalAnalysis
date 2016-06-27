@@ -223,14 +223,11 @@ let cloneProbability number (clone:clone)=
         | initPoint::rest -> rest //Discard t0 
         )
 
-//let outputFile = @"//datacentre/Shares/Users/vk325/Desktop/test.txt"
-
-
 let summarizeObservations (allBasalSums: randomBasal [] )  =
 
     let filename = allBasalSums.[0].parameterSet
     let outputFile = @"//datacentre/Shares/Users/vk325/Desktop/test/"+filename
- 
+
     let summary = 
       [| for i in allBasalSums ->
             let daytime = int (i.time * 7.0)
@@ -318,9 +315,14 @@ let getBasalSum timepoint id sims cloneNumberPerAnimal (rnd:System.Random) pfile
 
     let filteredClonesPerTimepoint = Array.filter (fun cl -> cl.population.basal > 0<Types.cell>) allClonesPerTimepoint
 
-    let randomIndices = Array.init cloneNumberPerAnimal (fun _ -> rnd.Next(filteredClonesPerTimepoint.Length))
+    // Get unique random simulation indices 
+    let randomIndices = Seq.initInfinite (fun _ -> rnd.Next(filteredClonesPerTimepoint.Length))
+    let uniqueRandomIndices = randomIndices
+                            |> Seq.distinct
+                            |> Seq.take(cloneNumberPerAnimal)
+                            |> Seq.toArray
 
-    let bs = Array.map (fun x -> filteredClonesPerTimepoint.[x].population.basal) randomIndices   //get the number of basal cells at each random position
+    let bs = Array.map (fun x -> filteredClonesPerTimepoint.[x].population.basal) uniqueRandomIndices   //get the number of basal cells at each random position
 
     let rb = {time=timepoint; basalSum=bs; animalID=animalID; parameterSet=pfilename}  
    
@@ -332,18 +334,18 @@ let getRandomBasal numberOfSims cloneNumberPerAnimal (clone:clone)=
     let sims = Array.init numberOfSims (fun i -> simulate {clone with rng=System.Random(i)})
 
     let pfilename = "synthetic"+clone.r.ToString()+"_"+clone.rho.ToString()+"_"+clone.lambda.ToString()+".m" //matlab output file name
-    let rnd = new System.Random()
     let numberOfTimepoints = sims.[0].Length;
 
     let animals = 4 //introducing 4 different animals to mimic the experimental data
 
     let outputFile = @"//datacentre/Shares/Users/vk325/Desktop/test/"+pfilename
+    
     let parameters = "%PARAMETERS: "+"r: "+clone.r.ToString()+"; rho: "+clone.rho.ToString()+"; lamda: "+clone.lambda.ToString()+"\nk=0;"
     ignore (System.IO.File.AppendAllLines(outputFile, [|parameters|]))
 
     let allBasalSums = 
         Array.init (numberOfTimepoints-1) ( fun t ->  //the numberOfTimepoints includes the zero time point which has to be discarded 
-          Array.init animals (fun id -> getBasalSum t id sims cloneNumberPerAnimal rnd pfilename) // group to 4 animal ids of equal number of elements
+          Array.init animals (fun id -> getBasalSum t id sims cloneNumberPerAnimal (System.Random(id)) pfilename) // group to 4 animal ids of equal number of elements
                 |>summarizeObservations) 
 
 
