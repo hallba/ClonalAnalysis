@@ -85,12 +85,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="HiPrecision.fs" />
+    <Compile Include="RandomNumbers.fs" />
     <Compile Include="Gamma.fs" />
     <Compile Include="Kummer.fs" />
     <Compile Include="Whittaker.fs" />
     <Compile Include="Parallel.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="IO.fs" />
+    <Compile Include="HistoneDilution.fs" />
     <Compile Include="SimulationCloneSizeDistribution.fs" />
     <Compile Include="SupraBasalAnalysis.fs" />
     <Compile Include="AnalyticalCloneSizeDistribution.fs" />
