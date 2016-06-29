@@ -92,8 +92,8 @@
     <Compile Include="Parallel.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="IO.fs" />
-    <Compile Include="HistoneDilution.fs" />
     <Compile Include="SimulationCloneSizeDistribution.fs" />
+    <Compile Include="HistoneDilution.fs" />
     <Compile Include="SupraBasalAnalysis.fs" />
     <Compile Include="AnalyticalCloneSizeDistribution.fs" />
     <Compile Include="CalculateProbability.fs" />
