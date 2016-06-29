@@ -223,14 +223,11 @@ let cloneProbability number (clone:clone)=
         | initPoint::rest -> rest //Discard t0 
         )
 
-//let outputFile = @"//datacentre/Shares/Users/vk325/Desktop/test.txt"
-
-
 let summarizeObservations (allBasalSums: randomBasal [] )  =
 
     let filename = allBasalSums.[0].parameterSet
     let outputFile = @"//datacentre/Shares/Users/vk325/Desktop/test/"+filename
- 
+
     let summary = 
       [| for i in allBasalSums ->
             let daytime = int (i.time * 7.0)
@@ -277,7 +274,43 @@ let calcSlope (x2:float, y2:float) =
     let y1 = 1.0
     (y2 - y1) / (x2 - x1)
 
-let massiveSimulation numberSims clone =
+let shortTimeSanityCheck (timePoints: float [] list, avgBasalCells, clone) =
+  
+    let outputFile = @"//datacentre/Shares/Users/vk325/Desktop/sanity_check/short_timescales.txt"
+
+    let gamma = (clone.lambda*clone.rho) / (1.- clone.rho)
+    let (intercept,slope),rsq = calcLinear(timePoints.[0].[1..], avgBasalCells)
+    let earlySlope = calcSlope(timePoints.[0].[1], avgBasalCells.[0])
+    let inputParameters = clone.r.ToString()+"\t"+clone.rho.ToString()+"\t"+clone.lambda.ToString()+"\t"
+
+    let avg = [|for a in avgBasalCells -> a.ToString() |] |> String.concat "\t"
+
+    System.IO.File.AppendAllLines(outputFile,[|inputParameters+(1./float(gamma)).ToString()+"\t"+System.Math.Round(rsq,4).ToString()+"\t"+slope.ToString()+"\t"+intercept.ToString()+"\t"+earlySlope.ToString()+"\t"+avg|])
+
+    let  shortTimeRule =
+        timePoints
+        |> List.map (fun times ->
+            times.[1..]
+            |> Array.map (fun t ->
+                (1. + float(clone.lambda) * t).ToString() )
+            |> String.concat "\t")
+  
+    System.IO.File.AppendAllLines(outputFile,shortTimeRule)
+
+let longTimeSanityCheck (timePoints: float [] list, avgBasalCells, clone ) =
+    let outputFile = @"//datacentre/Shares/Users/vk325/Desktop/sanity_check/long_timescales.txt"
+    
+    let inputParameters = clone.r.ToString()+"\t"+clone.rho.ToString()+"\t"+clone.lambda.ToString()+"\t"
+    let ratio = (clone.r *clone.lambda) / clone.rho
+    let (intercept,slope),rsq = calcLinear(timePoints.[0].[1..], avgBasalCells)
+
+    let avg = [|for a in avgBasalCells -> a.ToString() |] |> String.concat "\t"
+    System.IO.File.AppendAllLines(outputFile,[|inputParameters+ratio.ToString()+"\t"+(1./float(clone.rho)).ToString()+"\t"+System.Math.Round(rsq,4).ToString()+"\t"+System.Math.Round(slope,4).ToString()+"\t"+System.Math.Round(intercept,4).ToString()+"\t"+avg|])
+
+
+type BasalAvgType = All | Surviving //select type of average number of Basal Cells: All (survivng + exctinct) or surviving only (i.e zero clones excluded)
+
+let massiveSimulation numberSims (average:BasalAvgType) clone =
     let sims = Seq.init numberSims (fun i -> simulate {clone with rng=System.Random(i)})
 
     let totalTimePoints = match clone.reporting with
@@ -286,23 +319,43 @@ let massiveSimulation numberSims clone =
 
     let acc = Array.init totalTimePoints (fun i -> int64(0<Types.cell>))
    
-    let addObservations runningTotal (result:populationState list) =
-        let timepoints = result|>List.map(fun t -> float(t.time))|>Array.ofList
-        let basalSummary = List.map (fun individualTimePoint -> individualTimePoint.population.basal) result
-                            //|> Seq.skip 1   //discard 0 time point
-                            |> Array.ofList
-        Array.map2 (fun r T -> int64(r)+int64(T)) basalSummary.[1..] runningTotal 
+    let avgBasal = match average with
+                        | All -> 
+                                let addObservations runningTotal (result:populationState list) =
+                                    let basalSummary = List.map (fun individualTimePoint -> individualTimePoint.population.basal) result
+                                                        |> Array.ofList
 
-    let totalBasalCells = Seq.fold addObservations acc sims
-    let avgBasal = totalBasalCells |> Array.map(fun elem -> float(elem) / float(numberSims))
+                                    Array.map2 (fun r T -> int64(r)+int64(T)) basalSummary.[1..] runningTotal 
+
+                                let totalBasalCells = Seq.fold addObservations acc sims
+                                totalBasalCells |> Array.map(fun elem -> float(elem) / float(numberSims))
+                        | Surviving ->
+                                let addObservations runningTotal (result:populationState list) =
+                                    let basalSummary = List.map (fun individualTimePoint -> individualTimePoint.population.basal) result
+                                                        |> Array.ofList
+
+                                    Array.map2 (fun r T -> int64(r)+int64(T)) basalSummary.[1..] runningTotal 
+
+                                let totalBasalCells = Seq.fold addObservations acc sims
+
+                                let countNonZeros runningTotal (result:populationState list) =
+                                    let basalSummary = List.map (fun individualTimePoint -> individualTimePoint.population.basal) result
+                                                        |>Array.ofList
+                                    Array.map2 (fun r T -> 
+                                                    match r with
+                                                    |0<Types.cell> -> int64(T)
+                                                    |_ -> int64(T)+int64(1)) basalSummary.[1..] runningTotal
+
+                                let nonZeros = Seq.fold countNonZeros acc sims
+                                Array.map2(fun tb nz -> float(tb) / float(nz)) totalBasalCells nonZeros
 
     let getTimePoints (result:populationState list) = 
         result|>List.map(fun t -> float(t.time))|>Array.ofList
         
     let timepoints = sims|> Seq.map (fun s -> getTimePoints s)|> Seq.take 1|> Seq.toList
     
-    let (intercept,slope),rsq = calcLinear(timepoints.[0].[1..], avgBasal)
-    ()
+    shortTimeSanityCheck(timepoints, avgBasal, clone)
+    longTimeSanityCheck(timepoints, avgBasal, clone)
  
 
 let getBasalSum timepoint id sims cloneNumberPerAnimal (rnd:System.Random) pfilename = 
@@ -318,9 +371,14 @@ let getBasalSum timepoint id sims cloneNumberPerAnimal (rnd:System.Random) pfile
 
     let filteredClonesPerTimepoint = Array.filter (fun cl -> cl.population.basal > 0<Types.cell>) allClonesPerTimepoint
 
-    let randomIndices = Array.init cloneNumberPerAnimal (fun _ -> rnd.Next(filteredClonesPerTimepoint.Length))
+    // Get unique random simulation indices 
+    let randomIndices = Seq.initInfinite (fun _ -> rnd.Next(filteredClonesPerTimepoint.Length))
+    let uniqueRandomIndices = randomIndices
+                            |> Seq.distinct
+                            |> Seq.take(cloneNumberPerAnimal)
+                            |> Seq.toArray
 
-    let bs = Array.map (fun x -> filteredClonesPerTimepoint.[x].population.basal) randomIndices   //get the number of basal cells at each random position
+    let bs = Array.map (fun x -> filteredClonesPerTimepoint.[x].population.basal) uniqueRandomIndices   //get the number of basal cells at each random position
 
     let rb = {time=timepoint; basalSum=bs; animalID=animalID; parameterSet=pfilename}  
    
@@ -332,18 +390,18 @@ let getRandomBasal numberOfSims cloneNumberPerAnimal (clone:clone)=
     let sims = Array.init numberOfSims (fun i -> simulate {clone with rng=System.Random(i)})
 
     let pfilename = "synthetic"+clone.r.ToString()+"_"+clone.rho.ToString()+"_"+clone.lambda.ToString()+".m" //matlab output file name
-    let rnd = new System.Random()
     let numberOfTimepoints = sims.[0].Length;
 
     let animals = 4 //introducing 4 different animals to mimic the experimental data
 
     let outputFile = @"//datacentre/Shares/Users/vk325/Desktop/test/"+pfilename
+    
     let parameters = "%PARAMETERS: "+"r: "+clone.r.ToString()+"; rho: "+clone.rho.ToString()+"; lamda: "+clone.lambda.ToString()+"\nk=0;"
     ignore (System.IO.File.AppendAllLines(outputFile, [|parameters|]))
 
     let allBasalSums = 
         Array.init (numberOfTimepoints-1) ( fun t ->  //the numberOfTimepoints includes the zero time point which has to be discarded 
-          Array.init animals (fun id -> getBasalSum t id sims cloneNumberPerAnimal rnd pfilename) // group to 4 animal ids of equal number of elements
+          Array.init animals (fun id -> getBasalSum t id sims cloneNumberPerAnimal (System.Random(id)) pfilename) // group to 4 animal ids of equal number of elements
                 |>summarizeObservations) 
 
 
@@ -363,6 +421,18 @@ let createSyntheticDataset parameterSets numberOfSims cloneNumberPerAnimal =
             |> getRandomBasal numberOfSims cloneNumberPerAnimal
         ) completeSet
 
-    allRandomBasalSums //|> printfn "%A" 
+    allRandomBasalSums
+
+let validateSyntheticDataset parameterSets numberOfSims avgType =
+
+    let completeSet = Types.createParameterSet {parameterSets with timePoints=[|0.<Types.week>|]}  
+    let allRandomBasalSums = 
+        Array.map (fun input -> 
+            input 
+            |> parameterSetToClone (Regular({timeLimit=100.0<Types.week>;frequency=4.0<Types.week>;lastReport=0.<Types.week>}))
+            |> massiveSimulation numberOfSims avgType
+        ) completeSet
+
+    allRandomBasalSums
   
 
