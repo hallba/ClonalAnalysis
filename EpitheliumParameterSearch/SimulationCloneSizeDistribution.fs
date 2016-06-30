@@ -3,11 +3,29 @@
 //open FSharp.Collections.ParallelSeq
 open MathNet.Numerics
 
+type dilutionMeasure = Divisions of int | DontMeasure | Population of float []
+
+type basalEvent = Stratification | Division
+
+let dilutionUpdate dMeasure event (rng: System.Random) = 
+    match dMeasure with
+    |DontMeasure                ->  dMeasure
+    |Divisions(n)               ->  if event = Division then Divisions(n+1) else dMeasure
+    |Population(p)              ->  let l = Array.length p
+                                    //Randomly pick one element
+                                    let r = rng.Next(l+1)
+                                    if event = Stratification then 
+                                        Population(Array.append p.[..(r-1)] p.[(r+1)..]) 
+                                        else    let d' = p.[r]/2.
+                                                p.[r] <- d'
+                                                Population(Array.append p [|d'|])
+
+
 type cellPopulation = 
                 {   A : int<Types.cell>;
                     B : int<Types.cell>;
                     C : int<Types.cell>;  
-                    divisions: int
+                    dilution: dilutionMeasure
                     } with
                     member this.basal = this.A + this.B
                     member this.suprabasal = this.C
@@ -71,13 +89,17 @@ type clone = {  state   : populationState;
                 member this.selectEvent =   
                     let random = this.rng.NextDouble()
                     //AA
-                    if random < this.pAA then {this.state.population with A=this.state.population.A+1<Types.cell>;divisions=this.state.population.divisions+1}
+                    if random < this.pAA then 
+                        {this.state.population with A=this.state.population.A+1<Types.cell>;dilution=(dilutionUpdate this.state.population.dilution Division this.rng) }
                     //AB
-                    else if random < this.pAA + this.pAB then {this.state.population with B=this.state.population.B+1<Types.cell>;divisions=this.state.population.divisions+1}
+                    else if random < this.pAA + this.pAB then 
+                        {this.state.population with B=this.state.population.B+1<Types.cell>;dilution=(dilutionUpdate this.state.population.dilution Division this.rng)}
                     //BB
-                    else if random < this.pAA + this.pAB + this.pBB then {this.state.population with A=this.state.population.A-1<Types.cell>;B=this.state.population.B+2<Types.cell>;divisions=this.state.population.divisions+1}
+                    else if random < this.pAA + this.pAB + this.pBB then 
+                        {this.state.population with A=this.state.population.A-1<Types.cell>;B=this.state.population.B+2<Types.cell>;dilution=(dilutionUpdate this.state.population.dilution Division this.rng)}
                     //Migration
-                    else if random < this.pAA + this.pAB + this.pBB + this.pB2C then {this.state.population with B=this.state.population.B-1<Types.cell>;C=this.state.population.C+1<Types.cell>}
+                    else if random < this.pAA + this.pAB + this.pBB + this.pB2C then 
+                        {this.state.population with B=this.state.population.B-1<Types.cell>;C=this.state.population.C+1<Types.cell>;dilution=(dilutionUpdate this.state.population.dilution Stratification this.rng)}
                     //Shedding
                     else {this.state.population with C=this.state.population.C-1<Types.cell>}
                 member this.update =    //If the system has run out of cells, just update the final state and return the clone
@@ -118,7 +140,7 @@ type clone = {  state   : populationState;
 let initClone = {   state = {   population = {  A = 1<Types.cell>
                                                 B = 0<Types.cell>
                                                 C = 0<Types.cell>; 
-                                                divisions = 0}
+                                                dilution = DontMeasure}
                                 time =0.<Types.week> }
                     lambda  = 2.<Types.cell/Types.week>
                     rho = 0.85
