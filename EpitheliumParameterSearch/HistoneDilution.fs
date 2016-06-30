@@ -7,7 +7,7 @@ let rec addCells c pop =
     | [] -> pop
     | firstCell::rest -> addCells rest (firstCell::pop) 
 
-let dilutionTwoDivision numberOfClone1 clone1 numberOfClone2 clone2  = 
+let dilutionTwoPopulation numberOfClone1 clone1 numberOfClone2 clone2  = 
     let rec dilutionSim nClone1 clone1 nClone2 clone2 count acc =
         if count<>(nClone1+nClone2) then
             let clone = if count < nClone1 then clone1 else clone2
@@ -35,8 +35,8 @@ let dilutionTwoDivision numberOfClone1 clone1 numberOfClone2 clone2  =
                          )
     dilutionSim numberOfClone1 clone1 numberOfClone2 clone2 0 []
 
-let dilutionSingleDivision numberOfClones clone = 
-    dilutionTwoDivision numberOfClones clone 0 clone
+let dilutionSinglePopulation numberOfClones clone = 
+    dilutionTwoPopulation numberOfClones clone 0 clone
 
 let intensityToText (I:float list list) name = 
     use textFile = new System.IO.StreamWriter(name, true)
