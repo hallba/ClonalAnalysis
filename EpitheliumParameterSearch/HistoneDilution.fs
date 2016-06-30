@@ -15,11 +15,11 @@ let dilutionTwoPopulation numberOfClone1 clone1 numberOfClone2 clone2  =
             //Randomise the initial label concentration
             let rec initialLabel () =   let result = RandomNumbers.gaussianMP (System.Random(count)) 1. 0.2 
                                         if result <= 0. then initialLabel () else result
+            let random = initialLabel ()
             let cellDilution = List.map (fun (i:populationState) -> 
                 match i.population.dilution with
-                | Divisions(n)  ->      let random = initialLabel ()
-                                        List.init (i.population.basal*1<Types.cell^-1>) (fun individiual -> random/float(n+1)) //(i.population.basal,(initialLabel ())/float(n+1)) 
-                | Population(p) ->      List.ofArray p
+                | Divisions(n)  ->      List.init (i.population.basal*1<Types.cell^-1>) (fun individiual -> random/float(n+1)) //(i.population.basal,(initialLabel ())/float(n+1)) 
+                | Population(p) ->      List.ofArray p |> List.map (fun i -> i*random)
                 | _ -> failwith "Called division function with a clone that doesn't measure dilution" ) result
             dilutionSim nClone1 clone1 nClone2 clone2 (count+1) (cellDilution::acc)
         else

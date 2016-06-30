@@ -13,7 +13,7 @@ let dilutionUpdate dMeasure event (rng: System.Random) =
     |Divisions(n)               ->  if event = Division then Divisions(n+1) else dMeasure
     |Population(p)              ->  let l = Array.length p
                                     //Randomly pick one element
-                                    let r = rng.Next(l+1)
+                                    let r = rng.Next(l)
                                     if event = Stratification then 
                                         Population(Array.append p.[..(r-1)] p.[(r+1)..]) 
                                         else    let d' = p.[r]/2.
