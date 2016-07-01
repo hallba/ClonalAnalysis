@@ -16,9 +16,12 @@ let dilutionUpdate dMeasure event (rng: System.Random) =
                                     let r = rng.Next(l)
                                     if event = Stratification then 
                                         Population(Array.append p.[..(r-1)] p.[(r+1)..]) 
-                                        else    let d' = p.[r]/2.
-                                                p.[r] <- d'
-                                                Population(Array.append p [|d'|])
+                                        else    let rec mixture () = let i = RandomNumbers.gaussianMP rng 0.5 0.2
+                                                                     if i >= 1. || i <= 0. then mixture () else i
+                                                let balance = mixture ()
+                                                let d' = p.[r]*balance
+                                                let p' = Array.init (Array.length p) (fun i -> if i <> r then p.[i] else d')
+                                                Population(Array.append p [|p.[r]*(1.-balance)|])
 
 
 type cellPopulation = 
