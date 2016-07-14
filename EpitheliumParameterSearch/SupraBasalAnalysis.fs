@@ -21,19 +21,30 @@ let averageSBBRatio numberSimulations clone =
 
 type finishingCondition = Tolerance of float | Count of int
 
-let floatingCloneProbability' finishingCondition clone = 
+let noFiltration result = Some(result)
+
+let filterByFirstTimepointDivision minDivisions (result:populationState list) = 
+    let t0 = result.[1]
+    match t0.population.dilution with
+    | Divisions(n) -> if n < minDivisions then None else Some(result)
+    | _ -> failwith "Need simulations to count divisions in order to filter by divisions" 
+
+let floatingCloneProbability' finishingCondition clone filtration = 
     let calcP (c,fc) = float(fc)/float(c)
     let rec fcsim count clone finishingCondition acc =
-        let result = simulate {clone with rng=System.Random(count)}
-        let acc' = List.map2 (fun tc tn -> countFloatingClones tc tn) acc result
-        match finishingCondition with
-        | Count(i) ->   //printf "Count %A Acc %A\n" count acc'
-                        if count >= (i-1) then acc' else fcsim (count+1) clone finishingCondition acc'
-        | Tolerance(f) ->   let maxDiff = List.map2 (fun aE aE' -> abs((calcP aE')-(calcP aE))) acc acc' |> List.max
-//                            let t0::trest = acc'
-//                            let mino = List.minBy (fun (c,fc) -> fc) trest
-                            //ignore (if count%10000=0 then printf "Count %A maxDiff %A\n" count maxDiff else ())
-                            if (maxDiff > f|| System.Double.IsNaN(maxDiff) || maxDiff=0.) then fcsim (count+1) clone finishingCondition acc' else acc'
+        let result = simulate {clone with rng=System.Random(count)} |> filtration
+        match result with
+        | None -> fcsim (count+1) clone finishingCondition acc
+        | Some(result) ->
+            let acc' = List.map2 (fun tc tn -> countFloatingClones tc tn) acc result
+            match finishingCondition with
+            | Count(i) ->   //printf "Count %A Acc %A\n" count acc'
+                            if count >= (i-1) then acc' else fcsim (count+1) clone finishingCondition acc'
+            | Tolerance(f) ->   let maxDiff = List.map2 (fun aE aE' -> abs((calcP aE')-(calcP aE))) acc acc' |> List.max
+    //                            let t0::trest = acc'
+    //                            let mino = List.minBy (fun (c,fc) -> fc) trest
+                                //ignore (if count%10000=0 then printf "Count %A maxDiff %A\n" count maxDiff else ())
+                                if (maxDiff > f|| System.Double.IsNaN(maxDiff) || maxDiff=0.) then fcsim (count+1) clone finishingCondition acc' else acc'
     
     let neutral = List.map (fun i -> (0,0)) (   match clone.reporting with 
                                                 | Specified(a) -> ((0.<Types.week>)::a)
