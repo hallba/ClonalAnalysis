@@ -30,6 +30,7 @@ let filterByFirstTimepointDivision minDivisions (result:populationState list) =
     | _ -> failwith "Need simulations to count divisions in order to filter by divisions" 
 
 let floatingCloneProbability' finishingCondition clone filtration = 
+    if clone.SBRatio = None then failwith "Cannot calculate floating clone probabilities without an exit rate"
     let calcP (c,fc) = float(fc)/float(c)
     let rec fcsim count clone finishingCondition acc =
         let result = simulate {clone with rng=System.Random(count)} |> filtration
