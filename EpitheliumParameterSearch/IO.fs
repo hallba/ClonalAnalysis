@@ -125,5 +125,5 @@ let importMatlab (filename: string) =
 
 let quickOutput filename result = 
     use file = new System.IO.StreamWriter(filename, false)//new StreamWriter(filename, false)
-    List.iter (fun timepoint -> List.iter (fun i -> file.WriteLine(sprintf "%f" i)) timepoint; file.WriteLine(sprintf "")) result
+    List.iter (fun timepoint -> List.iter (fun i -> file.WriteLine(sprintf "%s" i)) timepoint; file.WriteLine(sprintf "")) result
     file.Close()
