@@ -300,7 +300,7 @@ let calcSlope (x2:float, y2:float) =
     (y2 - y1) / (x2 - x1)
 
 let shortTimeSanityCheck (timePoints: float [] list, avgBasalCells, clone) =
-  
+    //BH- hard coded variables should be passed to functions
     let outputFile = @"//datacentre/Shares/Users/vk325/Desktop/sanity_check/short_timescales.txt"
 
     let gamma = (clone.lambda*clone.rho) / (1.- clone.rho)
@@ -323,6 +323,7 @@ let shortTimeSanityCheck (timePoints: float [] list, avgBasalCells, clone) =
     System.IO.File.AppendAllLines(outputFile,shortTimeRule)
 
 let longTimeSanityCheck (timePoints: float [] list, avgBasalCells, clone ) =
+    //BH- hard coded variables should be passed to functions
     let outputFile = @"//datacentre/Shares/Users/vk325/Desktop/sanity_check/long_timescales.txt"
     
     let inputParameters = clone.r.ToString()+"\t"+clone.rho.ToString()+"\t"+clone.lambda.ToString()+"\t"
@@ -379,8 +380,14 @@ let massiveSimulation numberSims (average:BasalAvgType) clone =
         
     let timepoints = sims|> Seq.map (fun s -> getTimePoints s)|> Seq.take 1|> Seq.toList
     
-    shortTimeSanityCheck(timepoints, avgBasal, clone)
-    longTimeSanityCheck(timepoints, avgBasal, clone)
+    //BH- Commented out code that generates output to files with hardcoded filenames. Pass an option for output?
+    //shortTimeSanityCheck(timepoints, avgBasal, clone)
+    //longTimeSanityCheck(timepoints, avgBasal, clone)
+    //BH- return timepoints and averages as arrays of equal length
+    let processedTimepoints = timepoints.[0] |> List.ofArray |> fun i ->    match i with 
+                                                                            | t0::rest -> Array.ofList rest
+                                                                            | [] -> failwith "At least one timepoint should have been calculated"
+    (processedTimepoints, avgBasal)
  
 
 let getBasalSum timepoint id sims cloneNumberPerAnimal (rnd:System.Random) pfilename = 

@@ -122,3 +122,8 @@ let importMatlab (filename: string) =
 //                                            (fun m -> matrix.[i+(j*scanMatD.[0])+(k*scanMatD.[0]*scanMatD.[1])+(l*scanMatD.[0]*scanMatD.[1]*scanMatD.[2])+(m*scanMatD.[0]*scanMatD.[1]*scanMatD.[2]*scanMatD.[3])] 
 //                                                ) ) ) ) ) ) ) ) )
 //    let survivalP  = readNd "PSurvScanPP" ([lambdaRange;rhoRange;rRange;t] |> List.map (fun i -> Array.length i))
+
+let quickOutput filename result = 
+    use file = new System.IO.StreamWriter(filename, false)//new StreamWriter(filename, false)
+    List.iter (fun timepoint -> List.iter (fun i -> file.WriteLine(sprintf "%f" i)) timepoint; file.WriteLine(sprintf "")) result
+    file.Close()

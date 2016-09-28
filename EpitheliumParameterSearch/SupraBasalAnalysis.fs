@@ -104,3 +104,40 @@ let suprabasalObservationProbability finishingCondition basalSizes clone =
     
     sbsim clone finishingCondition 0 neutral
     |> List.map (fun timePoint -> List.map calcP timePoint )
+
+let supraBasalRatio finishingCondition clone =
+    let rec restructureResult result (inp:float option list list) =
+        match inp with
+        | [] -> result
+        | sim::rest ->  let result' = List.map2 (fun timepoint indiSim ->   match indiSim with 
+                                                                            | None -> timepoint
+                                                                            | Some(i) -> i::timepoint) result sim
+                        restructureResult result' rest
+    let calculateRatio (i:populationState) = 
+        if i.population.basal > 0<Types.cell> && i.population.suprabasal >0<Types.cell> then
+            Some(float(i.population.suprabasal)/float(i.population.basal))
+        else
+            None
+    let rec sbsim clone finishingCondition acc seed =
+        let sim =   simulate {clone with rng=System.Random(seed)} |> List.map calculateRatio
+        let acc' = sim::acc
+        match finishingCondition with
+        | Tolerance(a) -> failwith "Not implemented yet"
+        | Count(n) -> if n>0 then sbsim clone (Count(n-1)) acc' (seed+1) else acc' |> restructureResult (List.map (fun i -> []) acc'.Head)
+    sbsim clone finishingCondition [] 0
+
+let fcPerSingle finishingCondition clone =
+    let updateAcc acc (i:populationState) = 
+        if i.population.basal > 1<Types.cell> then
+            acc
+        else if i.population.basal = 1<Types.cell> then
+            (fst(acc),(snd(acc)+1))
+        else if i.population.suprabasal > 0<Types.cell> then
+            ((fst(acc)+1),snd(acc))
+        else acc
+    let rec sbsim clone finishingCondition acc seed =
+        let acc' =   simulate {clone with rng=System.Random(seed)} |> List.fold updateAcc acc
+        match finishingCondition with
+        | Count(n) -> if n>0 then sbsim clone (Count(n-1)) acc' (seed+1) else acc'
+        | _ -> failwith "Not implemented yet"
+    sbsim clone finishingCondition (0,0) 0
