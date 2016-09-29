@@ -127,17 +127,24 @@ let supraBasalRatio finishingCondition clone =
     sbsim clone finishingCondition [] 0
 
 let fcPerSingle finishingCondition clone =
-    let updateAcc acc (i:populationState) = 
-        if i.population.basal > 1<Types.cell> then
-            acc
-        else if i.population.basal = 1<Types.cell> then
-            (fst(acc),(snd(acc)+1))
-        else if i.population.suprabasal > 0<Types.cell> then
-            ((fst(acc)+1),snd(acc))
-        else acc
+    let updateAcc runningTotal (sim:populationState list) = 
+        let updateT runningTotalTimePoint simTimePoint = 
+            if simTimePoint.population.basal > 1<Types.cell> then
+                runningTotalTimePoint
+            else if simTimePoint.population.basal = 1<Types.cell> then
+                (fst(runningTotalTimePoint),(snd(runningTotalTimePoint)+1))
+            else if simTimePoint.population.suprabasal > 0<Types.cell> then
+                ((fst(runningTotalTimePoint)+1),snd(runningTotalTimePoint))
+            else runningTotalTimePoint
+        List.map2 (fun runningTotal element -> updateT runningTotal element) runningTotal sim
     let rec sbsim clone finishingCondition acc seed =
-        let acc' =   simulate {clone with rng=System.Random(seed)} |> List.fold updateAcc acc
+        let acc' =   simulate {clone with rng=System.Random(seed)} |> updateAcc acc
         match finishingCondition with
         | Count(n) -> if n>0 then sbsim clone (Count(n-1)) acc' (seed+1) else acc'
         | _ -> failwith "Not implemented yet"
-    sbsim clone finishingCondition (0,0) 0
+    let timePoints =    match clone.reporting with 
+                        | Specified(a) -> ((0.<Types.week>)::a)
+                        | Regular(r) -> ((0.<Types.week>)::(List.init (int(r.timeLimit/r.frequency)) (fun i -> float(i+1)*r.frequency)))
+                                                                                                
+    let neutral = List.map (fun j -> (0,0))  timePoints
+    sbsim clone finishingCondition neutral 0
