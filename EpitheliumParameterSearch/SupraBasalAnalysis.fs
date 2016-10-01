@@ -19,8 +19,6 @@ let averageSBBRatio numberSimulations clone =
     sims |>  Array.fold ( fun acc observation -> List.map2 (fun tc tn -> countCellRatio tc tn) acc observation ) neutral
     |> List.map (fun (c,r) -> r/float(c) )
 
-type finishingCondition = Tolerance of float | Count of int
-
 let noFiltration result = Some(result)
 
 let filterByFirstTimepointDivision minDivisions (result:populationState list) = 

@@ -7,6 +7,8 @@ type dilutionMeasure = Divisions of int | DontMeasure | Population of float []
 
 type basalEvent = Stratification | Division
 
+type finishingCondition = Tolerance of float | Count of int
+
 let dilutionUpdate dMeasure event (rng: System.Random) = 
     match dMeasure with
     |DontMeasure                ->  dMeasure
@@ -467,4 +469,18 @@ let validateSyntheticDataset parameterSets numberOfSims avgType =
 
     allRandomBasalSums
   
+let rhoByCloneSize finishingCondition clone maxSize = 
+    let updateAcc acc sim =
+        acc 
+    let rec simLoop clone finishingCondition acc seed =
+        let sim = simulate {clone with rng=System.Random(seed)}
+        let acc' = updateAcc acc sim
+        match finishingCondition with
+        | Count(n) -> if n>0 then simLoop clone (Count(n-1)) acc' (seed+1) else acc'
+        | _ -> failwith "Not implemented yet"
 
+    let timePoints =    match clone.reporting with 
+                        | Specified(a) -> ((0.<Types.week>)::a)
+                        | Regular(r) -> ((0.<Types.week>)::(List.init (int(r.timeLimit/r.frequency)) (fun i -> float(i+1)*r.frequency)))
+    let neutral = List.init maxSize (fun i -> (List.map (fun j -> (0,0))  timePoints))
+    simLoop clone finishingCondition neutral 0
