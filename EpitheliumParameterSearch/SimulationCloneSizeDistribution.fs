@@ -470,11 +470,16 @@ let validateSyntheticDataset parameterSets numberOfSims avgType =
     allRandomBasalSums
   
 let rhoByCloneSize finishingCondition clone maxSize = 
-    let updateAcc acc sim =
-        acc 
+    let addSim (simState:populationState) acc = 
+        if simState.population.basal*(1<Types.cell^-1>) > maxSize then acc else
+            let old = acc.[(simState.population.basal*(1<Types.cell^-1>))]
+            
+
+    let updateAcc (sim:populationState list) acc =
+        Array.map2 addSim (Array.ofList sim) acc
     let rec simLoop clone finishingCondition acc seed =
         let sim = simulate {clone with rng=System.Random(seed)}
-        let acc' = updateAcc acc sim
+        let acc' = updateAcc sim acc
         match finishingCondition with
         | Count(n) -> if n>0 then simLoop clone (Count(n-1)) acc' (seed+1) else acc'
         | _ -> failwith "Not implemented yet"
@@ -482,5 +487,5 @@ let rhoByCloneSize finishingCondition clone maxSize =
     let timePoints =    match clone.reporting with 
                         | Specified(a) -> ((0.<Types.week>)::a)
                         | Regular(r) -> ((0.<Types.week>)::(List.init (int(r.timeLimit/r.frequency)) (fun i -> float(i+1)*r.frequency)))
-    let neutral = List.init maxSize (fun i -> (List.map (fun j -> (0,0))  timePoints))
+    let neutral = (Array.map (fun j -> Array.init maxSize (fun i -> (0,0)) )  (Array.ofList timePoints))
     simLoop clone finishingCondition neutral 0
