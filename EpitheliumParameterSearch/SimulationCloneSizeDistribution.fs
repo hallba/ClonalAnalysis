@@ -71,8 +71,8 @@ type clone = {  state   : populationState;
                 with
                 member this.gamma = this.lambda * this.rho / (1. - this.rho) //Rate of B->C
                 member this.mu = match this.SBRatio with
-                                 //BH this rate needs to be scaled with rho to ensure complete replacement of SB population
-                                 | Some(r) -> this.rho*this.gamma/r //Rate of C loss
+                                 //BH this rate needs to be scaled with 1-rho to ensure complete replacement of SB population
+                                 | Some(r) -> (1.-this.rho)*this.gamma/r //Rate of C loss
                                  | None -> 0.<Types.cell/Types.week> //If we aren't interested in SB cells we can pass Nne and ignore mu's contribution
                 member this.eventRate = this.lambda * float(this.state.population.A) * 1.<Types.cell> + this.gamma * float(this.state.population.B) * 1.<Types.cell> + this.mu * float(this.state.population.C) * 1.<Types.cell>
                 member this.pAA =   this.r*(1.+this.delta)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.eventRate
