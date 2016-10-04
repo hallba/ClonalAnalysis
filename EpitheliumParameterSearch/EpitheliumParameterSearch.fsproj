@@ -84,7 +84,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="HiPrecision.fs" />
     <Compile Include="RandomNumbers.fs" />
     <Compile Include="Gamma.fs" />
     <Compile Include="Kummer.fs" />
