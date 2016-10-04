@@ -472,8 +472,8 @@ let validateSyntheticDataset parameterSets numberOfSims avgType =
 let rhoByCloneSize finishingCondition clone maxSize = 
     let addSim (simState:populationState) acc = 
         if simState.population.basal*(1<Types.cell^-1>) > maxSize then acc else
-            let old = acc.[(simState.population.basal*(1<Types.cell^-1>))]
-            
+            //let old = acc.[(simState.population.basal*(1<Types.cell^-1>))]
+            failwith "Incomplete"
 
     let updateAcc (sim:populationState list) acc =
         Array.map2 addSim (Array.ofList sim) acc
