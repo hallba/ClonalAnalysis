@@ -2,7 +2,9 @@
 
 open SimulationCloneSizeDistribution
 
-type ElementResult = Fine of populationState | Bad of populationState
+type Problem = RhoMismatch of populationState | MMismatch of populationState
+
+type ElementResult = Fine of populationState | Bad of Problem
 
 type TestResult = Pass | Fail of ElementResult list
 
@@ -21,7 +23,8 @@ let testHomeoState (c:clone) (p:populationState) =
     //(sbH,rhoH)
     match sbH,rhoH with
     | None,None -> Fine(p)
-    | _ -> Bad(p)
+    | Some(_),_ -> Bad(MMismatch(p))
+    | _ -> Bad(RhoMismatch(p))
 
 let testHomeostasis (result:populationState list) (c:clone) =
     List.map (testHomeoState c) result 
