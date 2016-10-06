@@ -2,7 +2,9 @@
 
 open SimulationCloneSizeDistribution
 
-type TestResult = Pass of populationState list| Fail of populationState list
+type ElementResult = Fine of populationState | Bad of populationState
+
+type TestResult = Pass | Fail of ElementResult list
 
 let floatRatio a b n = 
     //Convienience function for calculating deviation of a ratios of ints (a,b) compared to another float (n)
@@ -16,12 +18,17 @@ let testHomeoState (c:clone) (p:populationState) =
                                 if actualRatio <1.1 && actualRatio > 0.9 then None else Some(n,p.population.suprabasal,p.population.basal,(floatRatio p.population.suprabasal p.population.basal n))
     let actualRho = floatRatio p.population.A p.population.B (c.rho/(1.-c.rho))  
     let rhoH =  if actualRho <1.1 && actualRho > 0.9 then None else Some((c.rho/(1.-c.rho)),p.population.A,p.population.B,(floatRatio p.population.A p.population.B (c.rho/(1.-c.rho))) )
-    (sbH,rhoH)
+    //(sbH,rhoH)
+    match sbH,rhoH with
+    | None,None -> Fine(p)
+    | _ -> Bad(p)
 
 let testHomeostasis (result:populationState list) (c:clone) =
     List.map (testHomeoState c) result 
 
-let parseHStasisResult i =  fst(i) <> None && snd(i) <> None
+let parseHStasisResult i =  match i with
+                            | Bad(n) -> true
+                            | Fine(n) -> false
 
 let homeostasis_rho50_r25 =
     let tissueSize = {initClone.state.population with A=1000<Types.cell>;B=1000<Types.cell>;C=2000<Types.cell>}
@@ -34,9 +41,10 @@ let homeostasis_rho50_r25 =
 
     let result = simulate tissue
     //Need a function here to test that result- should have A~B C~A+B
-    testHomeostasis result tissue 
+    let test = testHomeostasis result tissue 
+    test
     |> List.filter parseHStasisResult
-    |> (fun i -> if List.length i > 0 then Fail(result) else Pass(result))
+    |> (fun i -> if List.length i > 0 then Fail(test) else Pass)
 
 let homeostasis_rho65_r25 = 
     let tissueSize = {initClone.state.population with A=1300<Types.cell>;B=700<Types.cell>;C=2000<Types.cell>}
@@ -47,6 +55,7 @@ let homeostasis_rho65_r25 =
                                     lambda=2.<Types.cell/Types.week>
                                     }
     let result = simulate tissue
-    testHomeostasis result tissue
+    let test = testHomeostasis result tissue
+    test
     |> List.filter parseHStasisResult
-    |> (fun i -> if List.length i > 0 then Fail(result) else Pass(result))
+    |> (fun i -> if List.length i > 0 then Fail(test) else Pass)
