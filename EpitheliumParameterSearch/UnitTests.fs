@@ -2,9 +2,8 @@
 
 open SimulationCloneSizeDistribution
 
-type Problem = RhoMismatch of populationState | MMismatch of populationState
-
-type ElementResult = Fine of populationState | Bad of Problem
+//Problem- state * expected * actual
+type ElementResult = Fine of populationState | RhoProblem of populationState * float * float | MProblem of populationState * float * float
 
 type TestResult = Pass | Fail of ElementResult list
 
@@ -17,21 +16,23 @@ let testHomeoState (c:clone) (p:populationState) =
     let sbH =   match c.SBRatio with 
                 | None -> None
                 | Some(n) ->    let actualRatio = floatRatio p.population.suprabasal p.population.basal n
-                                if actualRatio <1.1 && actualRatio > 0.9 then None else Some(n,p.population.suprabasal,p.population.basal,(floatRatio p.population.suprabasal p.population.basal n))
+                                if actualRatio <1.15 && actualRatio > 0.85 then None else Some(n,p.population.suprabasal,p.population.basal,(floatRatio p.population.suprabasal p.population.basal n))
     let actualRho = floatRatio p.population.A p.population.B (c.rho/(1.-c.rho))  
-    let rhoH =  if actualRho <1.1 && actualRho > 0.9 then None else Some((c.rho/(1.-c.rho)),p.population.A,p.population.B,(floatRatio p.population.A p.population.B (c.rho/(1.-c.rho))) )
+    let rhoH =  if actualRho <1.15 && actualRho > 0.85 then None else Some((c.rho/(1.-c.rho)),p.population.A,p.population.B,(floatRatio p.population.A p.population.B (c.rho/(1.-c.rho))) )
     //(sbH,rhoH)
     match sbH,rhoH with
     | None,None -> Fine(p)
-    | Some(_),_ -> Bad(MMismatch(p))
-    | _ -> Bad(RhoMismatch(p))
+    | Some(_),_ ->  match c.SBRatio with
+                    | Some(m) -> MProblem(p,m,(float(p.population.suprabasal)/float(p.population.basal)))
+                    | None -> failwith "Test failed"
+    | _ -> (RhoProblem(p,c.rho,(float(p.population.A)/float(p.population.basal))))
 
 let testHomeostasis (result:populationState list) (c:clone) =
     List.map (testHomeoState c) result 
 
 let parseHStasisResult i =  match i with
-                            | Bad(n) -> true
                             | Fine(n) -> false
+                            | _ -> true
 
 let homeostasis_rho50_r25 =
     let tissueSize = {initClone.state.population with A=1000<Types.cell>;B=1000<Types.cell>;C=2000<Types.cell>}
