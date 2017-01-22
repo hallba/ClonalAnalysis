@@ -96,6 +96,18 @@ let synthetic =  {
 
                     }
 
+let edu =   {
+                            Types.timePoints    =   [|(4.<Types.week>/7.); (5.<Types.week>/7.); (6.<Types.week>/7.); (7.<Types.week>/7.); (8.<Types.week>/7.); (10.<Types.week>/7.);|]
+                            Types.rhoRange      =   [|0.25; 0.5; 0.75|]
+                            Types.rRange        =   [|0.125<Types.probability>; 0.25<Types.probability>; 0.375<Types.probability>;|]
+                            Types.lambdaRange   =   [|1.<Types.cell/Types.week>; 2.<Types.cell/Types.week>; 3.<Types.cell/Types.week>;|]
+                            Types.maxN          =   195
+                            Types.deltaRange    =   Types.Zero
+                            Types.excludeOnes   =   true
+                            Types.results       =   None
+                            Types.matlabReplicate = false
+                            Types.supraBasalFit = false
+                }
 
 let testClone = Types.testSystem |> SimulationCloneSizeDistribution.parameterSetToClone (SimulationCloneSizeDistribution.Specified([1.428571429<Types.week>;])) ;;
 
@@ -306,3 +318,4 @@ let kasumiBackfc = [ (0,0); (0,224); (0,204); (39,243); (64,205); (0,239); (0,29
 
 let plantarfc = [(0,0); (32,64); (85,192); (67,175)]
 let plantarfcNonStrict = [(0,0);(56,132);(168,286);(154,190)]
+let edugreta = [ (0,0); (0,103); (12,392); (24,333); (32,372); (24,279); (25,278) ]
