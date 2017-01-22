@@ -2,6 +2,7 @@
 
 //open FSharp.Collections.ParallelSeq
 open MathNet.Numerics
+open System.Collections.Generic
 
 type dilutionMeasure = Divisions of int | DontMeasure | Population of float []
 
@@ -24,20 +25,29 @@ let dilutionUpdate dMeasure event (rng: System.Random) =
                                                 let d' = p.[r]*balance
                                                 let p' = Array.init (Array.length p) (fun i -> if i <> r then p.[i] else d')
                                                 Population(Array.append p [|p.[r]*(1.-balance)|])
+//TODO change with correct value
+let refractoryPeriod = 0.2<Types.week>;
 
+type releaseEvent =
+                   {
+                        timePoint: float<Types.week>;   //time of release event
+                        numberOfCells: int<Types.cell>; //number of cells (W->A) to be released
+                   }
 
 type cellPopulation = 
                 {   A : int<Types.cell>;
                     B : int<Types.cell>;
-                    C : int<Types.cell>;  
+                    C : int<Types.cell>;
+                    W : int<Types.cell>; //number of waiting cells
                     dilution: dilutionMeasure
                     } with
-                    member this.basal = this.A + this.B
+                    member this.basal = this.A + this.B + this.W
                     member this.suprabasal = this.C
 
 type populationState =
                 {   population  : cellPopulation;
                     time        : float<Types.week>;
+                    releaseEvents : releaseEvent list; //timings of deterministic events and number of cells to be released
                 }
 
 type regularReporting = 
@@ -89,25 +99,74 @@ type clone = {  state   : populationState;
                 member private this.recordPreviousStates reportTimes currentTime =
                     let rec core reportTimes currentTime acc = 
                         match reportTimes with
-                        | earliest::rest when earliest < currentTime -> core rest currentTime ({ population = this.state.population ; time=earliest }::acc)
-                        | _ -> ((List.rev acc),reportTimes)
+                        | earliest::rest when earliest < currentTime -> core rest currentTime ({ population = this.state.population ; time=earliest; releaseEvents = this.state.releaseEvents  }::acc) //recursive case
+                        | _ -> ((List.rev acc),reportTimes) // base case
                     core reportTimes currentTime []
-                member this.selectEvent =   
+
+                member this.addNextReleaseEvent (re:releaseEvent) releaseList=
+                    let rec addToList element list =
+                        match list with
+                        | [] -> [element]
+                        | head::rest -> if rest = [] then
+                                            head::element::rest
+                                        else
+                                            head::(addToList element rest)              
+                    addToList re releaseList
+
+                member this.removeReleaseEvent releaseList =
+                    //printfn "Removing release event from list"
+                    let rec removeEvent index releaseList =
+                        match index, releaseList with
+                        | 0, x::xs -> xs
+                        | index, x::xs -> x::removeEvent (index - 1) xs
+                        | index, [] -> failwith "index out of range"
+                    removeEvent 0 releaseList
+      
+                member this.selectEvent currentTime =
+                    //printfn "Select Event and Update Population"
                     let random = this.rng.NextDouble()
+                    //printfn "random: %A" random
+                    let releaseTime = currentTime + refractoryPeriod
+             
                     //AA
-                    if random < this.pAA then 
-                        {this.state.population with A=this.state.population.A+1<Types.cell>;dilution=(dilutionUpdate this.state.population.dilution Division this.rng) }
+                    if random < this.pAA then
+                        //printfn "AA!!!!!!!!!!!"
+                        let re = {timePoint=releaseTime; numberOfCells=2<Types.cell>;}
+                        let rl = this.addNextReleaseEvent re this.state.releaseEvents
+                        let populationAfterEvent = { this.state.population with A=this.state.population.A-1<Types.cell>;W=this.state.population.W+2<Types.cell>;dilution=(dilutionUpdate this.state.population.dilution Division this.rng) }
+                        {this.state with population = populationAfterEvent; releaseEvents = rl}
                     //AB
-                    else if random < this.pAA + this.pAB then 
-                        {this.state.population with B=this.state.population.B+1<Types.cell>;dilution=(dilutionUpdate this.state.population.dilution Division this.rng)}
+                    else if random < this.pAA + this.pAB then
+                        //printfn "AB!!!!!!!!!!!"
+                        let re = {timePoint=releaseTime; numberOfCells=1<Types.cell>;}
+                        let rl = this.addNextReleaseEvent re this.state.releaseEvents
+                        let populationAfterEvent = {this.state.population with A=this.state.population.A-1<Types.cell>;B=this.state.population.B+1<Types.cell>;W=this.state.population.W+1<Types.cell>;dilution=(dilutionUpdate this.state.population.dilution Division this.rng)}
+                        {this.state with population = populationAfterEvent; releaseEvents = rl}
                     //BB
                     else if random < this.pAA + this.pAB + this.pBB then 
-                        {this.state.population with A=this.state.population.A-1<Types.cell>;B=this.state.population.B+2<Types.cell>;dilution=(dilutionUpdate this.state.population.dilution Division this.rng)}
+                        //printfn "BB!!!!!!!!!!!"
+                        let populationAfterEvent = {this.state.population with A=this.state.population.A-1<Types.cell>;B=this.state.population.B+2<Types.cell>;dilution=(dilutionUpdate this.state.population.dilution Division this.rng)}
+                        {this.state with population = populationAfterEvent}
                     //Migration
                     else if random < this.pAA + this.pAB + this.pBB + this.pB2C then 
-                        {this.state.population with B=this.state.population.B-1<Types.cell>;C=this.state.population.C+1<Types.cell>;dilution=(dilutionUpdate this.state.population.dilution Stratification this.rng)}
+                        //printfn "Mig!!!!!!!!!!!"
+                        let populationAfterEvent = {this.state.population with B=this.state.population.B-1<Types.cell>;C=this.state.population.C+1<Types.cell>;dilution=(dilutionUpdate this.state.population.dilution Stratification this.rng)}
+                        {this.state with population = populationAfterEvent}
                     //Shedding
-                    else {this.state.population with C=this.state.population.C-1<Types.cell>}
+                    else if random < this.pAA + this.pAB + this.pBB + this.pB2C + this.pCExit then
+                        //printfn "Shed!!!!!!!!!!!"
+                        let populationAfterEvent = {this.state.population with C=this.state.population.C-1<Types.cell>}
+                        {this.state with population = populationAfterEvent}
+                    //In case W are the only cells in the system do nothing and move to the next time point
+                    else
+                        //printfn "WAIT!!!!!!!!!!!"
+                        this.state
+    
+                member this.releaseWaitingCells =
+                    let populationAfterRelease = {this.state.population with W=this.state.population.W-this.state.releaseEvents.[0].numberOfCells; A=this.state.population.A+this.state.releaseEvents.[0].numberOfCells;}
+                    let rl = this.removeReleaseEvent this.state.releaseEvents
+                    {this.state with population = populationAfterRelease; releaseEvents = rl}
+       
                 member this.update =    //If the system has run out of cells, just update the final state and return the clone
                     match (this.finalState,this.reporting) with
                     | (None,Regular(r)) ->
@@ -123,16 +182,30 @@ type clone = {  state   : populationState;
                         | nextReport::later -> 
                             //let dt = - 1.<Types.week> * log (this.rng.NextDouble()/ (this.eventRate*1.<Types.week Types.cell^-2> ) )
                             let dt = -1. * log(this.rng.NextDouble()) / this.eventRate * 1.<Types.cell^2>
-                            let time'  = this.state.time + dt
+
+                            let stime' = this.state.time + dt   // stochastic time point
+                            let dtime' = match this.state.releaseEvents.Length with
+                                         | rList when rList > 0 -> Some(this.state.releaseEvents.[0].timePoint) // deterministic time point
+                                         | _ -> None //infinity*1.<Types.week>
+                   
+                            let time' = match dtime' with
+                                        | Some t -> if stime'< t then stime' else t
+                                        | None -> stime'
+
+                            //printfn "%A -----NEW TIME-----" time'
                             let (report',l') =  this.recordPreviousStates l time'
                             let report' =   match report' with
                                             | [] -> None
                                             | _ -> Some(report')
-                            let population' = this.selectEvent
+                            
+                            let state' = match time' with
+                                         | t when t = stime' -> this.selectEvent time'
+                                         | _ -> this.releaseWaitingCells
+                                            
                             //Simulation finished condition- if there are no more cells, report the final state else continue
-                            if this.finishedCondition population' then {this with state = {population = population'; time = time'} ; reporting=Specified(l') ; report = report' }
+                            if this.finishedCondition state'.population then {this with state = {population = state'.population; time = time'; releaseEvents = state'.releaseEvents} ; reporting=Specified(l') ; report = report' }
                             else
-                                {this with state = {population = population'; time = time'} ; reporting=Specified(l') ; report = report' ; finalState = Some({time=time'; population=population'}) }
+                                {this with state = {population = state'.population; time = time'; releaseEvents = state'.releaseEvents} ; reporting=Specified(l') ; report = report' ; finalState = Some({time=time'; population=state'.population; releaseEvents = state'.releaseEvents}) }
                     | (Some(state),Specified(l)) -> 
                         //This should only be called if a simulation has completed but further reports are still required
                         match l with
@@ -176,6 +249,7 @@ let rec concatAllItems orderedList acc =
     | head::rest -> concatAllItems rest (head::acc)
 
 let simulate clone = 
+    // printfn "----------------------NEW SIMULATION----------------------------------"
     let rec core clone trace =
         match hasSimulationFinished clone with
         | true              ->  List.rev trace
@@ -391,6 +465,11 @@ let massiveSimulation numberSims (average:BasalAvgType) clone =
                                                                             | t0::rest -> Array.ofList rest
                                                                             | [] -> failwith "At least one timepoint should have been calculated"
     (processedTimepoints, avgBasal)
+
+    //avgBasal|>printfn "%A"
+    // shortTimeSanityCheck(timepoints, avgBasal, clone)
+    // longTimeSanityCheck(timepoints, avgBasal, clone)
+
  
 
 let getBasalSum timepoint id sims cloneNumberPerAnimal (rnd:System.Random) pfilename = 
