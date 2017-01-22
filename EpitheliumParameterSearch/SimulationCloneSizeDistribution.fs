@@ -186,7 +186,7 @@ let simulate clone =
     core clone [clone.state]
 
 let extendArrayForBigObservation arr bigObservation =
-    Array.init (bigObservation+1) (fun i -> if i+1 < Array.length arr then arr.[i] else if i = bigObservation then 1 else 0)
+    Array.init (bigObservation+1) (fun i -> if i < Array.length arr then arr.[i] else if i = bigObservation then 1 else 0)
 
 let addObservation arr cloneSize = 
     if (Array.length arr) >= (cloneSize*(1<Types.cell^-1>)+1) 
