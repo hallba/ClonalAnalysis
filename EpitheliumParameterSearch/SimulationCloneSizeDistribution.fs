@@ -67,7 +67,7 @@ type randomBasal =
 type reportStyle = Regular of regularReporting | Specified of float<Types.week> list
 
 type clone = {  state   : populationState;
-                lambda  : float<Types.cell/Types.week>;
+                inpLambda  : float<Types.cell/Types.week>;
                 rho     : float;
                 r       : float;
                 delta   : float;
@@ -79,11 +79,13 @@ type clone = {  state   : populationState;
                 finalState : populationState option
                 }
                 with
-                member this.gamma = this.lambda * this.rho / (1. - this.rho) //Rate of B->C
+                member this.lambda = this.inpLambda / (( 1.<Types.cell> - this.inpLambda * refractoryPeriod ) * 1.<Types.cell^-1>)  //refractory lambda
+                member this.gamma = this.inpLambda * this.rho / (1. - this.rho) //Rate of B->C
                 member this.mu = match this.SBRatio with
                                  //BH this rate needs to be scaled with 1-rho to ensure complete replacement of SB population
                                  | Some(r) -> (1.-this.rho)*this.gamma/r //Rate of C loss
                                  | None -> 0.<Types.cell/Types.week> //If we aren't interested in SB cells we can pass Nne and ignore mu's contribution
+
                 member this.eventRate = this.lambda * float(this.state.population.A) * 1.<Types.cell> + this.gamma * float(this.state.population.B) * 1.<Types.cell> + this.mu * float(this.state.population.C) * 1.<Types.cell>
                 member this.pAA =   this.r*(1.+this.delta)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.eventRate
                 member this.pAB =   (1.-2.*this.r)*this.lambda*float(this.state.population.A)*1.<Types.cell>/this.eventRate
@@ -218,23 +220,26 @@ type clone = {  state   : populationState;
                                                                 
 let initClone = {   state = {   population = {  A = 1<Types.cell>
                                                 B = 0<Types.cell>
-                                                C = 0<Types.cell>; 
+                                                C = 0<Types.cell>;
+                                                W = 0<Types.cell>;
                                                 dilution = DontMeasure}
-                                time =0.<Types.week> }
-                    lambda  = 2.<Types.cell/Types.week>
+                                time =0.<Types.week>
+                                releaseEvents= []}
+                                //releaseEvents.Clear }
+                    inpLambda  = 2.<Types.cell/Types.week>
                     rho = 0.85
                     r = 0.15
                     delta = 0.
                     maxN = 10
                     rng = System.Random(1982) //Specified a seed to make testing possible
-                    SBRatio = None //Some(0.27) //100 B : 19 SB1 : 8 SB2
+                    SBRatio = Some(0.27)//None //Some(0.27) //100 B : 19 SB1 : 8 SB2
                     reporting = Regular({timeLimit=200.<Types.week>;frequency=4.<Types.week>;lastReport=0.<Types.week>})
                     report = None 
                     finalState = None}
 
 let parameterSetToClone timePoints (inp : Types.parameterSet) = 
     //This needs to include all of the times to be tested!
-    { initClone with lambda = inp.lambda; rho = inp.rho; r = 1.<Types.probability^-1>*inp.r; delta = 1.<Types.probability^-1>*inp.delta; reporting=timePoints ; maxN = inp.maxN}
+    { initClone with inpLambda = inp.lambda; rho = inp.rho; r = 1.<Types.probability^-1>*inp.r; delta = 1.<Types.probability^-1>*inp.delta; reporting=timePoints ; maxN = inp.maxN}
 
 let specificClone = {initClone with reporting = Specified([1.<Types.week>;2.<Types.week>;4.<Types.week>;8.<Types.week>;12.<Types.week>;26.<Types.week>;52.<Types.week>;78.<Types.week>])}
 
@@ -380,7 +385,7 @@ let shortTimeSanityCheck (timePoints: float [] list, avgBasalCells, clone) =
     //BH- hard coded variables should be passed to functions
     let outputFile = @"//datacentre/Shares/Users/vk325/Desktop/sanity_check/short_timescales.txt"
 
-    let gamma = (clone.lambda*clone.rho) / (1.- clone.rho)
+    let gamma = (clone.inpLambda*clone.rho) / (1.- clone.rho)
     let (intercept,slope),rsq = calcLinear(timePoints.[0].[1..], avgBasalCells)
     let earlySlope = calcSlope(timePoints.[0].[1], avgBasalCells.[0])
     let inputParameters = clone.r.ToString()+"\t"+clone.rho.ToString()+"\t"+clone.lambda.ToString()+"\t"
@@ -401,10 +406,10 @@ let shortTimeSanityCheck (timePoints: float [] list, avgBasalCells, clone) =
 
 let longTimeSanityCheck (timePoints: float [] list, avgBasalCells, clone ) =
     //BH- hard coded variables should be passed to functions
-    let outputFile = @"//datacentre/Shares/Users/vk325/Desktop/sanity_check/long_timescales.txt"
-    
-    let inputParameters = clone.r.ToString()+"\t"+clone.rho.ToString()+"\t"+clone.lambda.ToString()+"\t"
-    let ratio = (clone.r *clone.lambda) / clone.rho
+    //let outputFile = @"//datacentre/Shares/Users/vk325/Desktop/sanity_check/long_timescales.txt"
+    let outputFile = @"/Users/Vicky/Desktop/long_timescales_0.2TEST.txt"
+    let inputParameters = clone.r.ToString()+"\t"+clone.rho.ToString()+"\t"+clone.inpLambda.ToString()+"\t"+clone.lambda.ToString()+"\t"
+    let ratio = (clone.r *clone.inpLambda) / clone.rho
     let (intercept,slope),rsq = calcLinear(timePoints.[0].[1..], avgBasalCells)
 
     let avg = [|for a in avgBasalCells -> a.ToString() |] |> String.concat "\t"
